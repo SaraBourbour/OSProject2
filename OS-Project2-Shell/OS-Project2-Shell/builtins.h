@@ -51,3 +51,6 @@ int com_history(vector<string>& tokens);
 
 // Returns the current working directory.
 string pwd();
+
+// Updates the environment's pwd value
+void updatepwd(string new_pwd);
