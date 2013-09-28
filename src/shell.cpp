@@ -52,8 +52,9 @@ int execute_external_command(vector<string> tokens) {
 // include the current working directory and should also use the return value to
 // indicate the result (success or failure) of the last command.
 string get_prompt(int return_value) {
-    // TODO: YOUR CODE GOES HERE
-    return "prompt > "; // replace with your own code
+    string prompt = "";
+    prompt = prompt + pwd() + " > ";
+    return prompt;
 }
 
 

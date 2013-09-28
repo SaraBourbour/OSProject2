@@ -37,39 +37,39 @@ int com_ls(vector<string>& tokens) {
 
 int com_cd(vector<string>& tokens) {
     cout << "cd called" << endl; // delete when implemented
-//    if (tokens.size() == 2) {
-//        // If the first value is a '/', using an absolute path
-//        if (tokens[1][0] == '/') {
-//            chdir(tokens[1].c_str());
-//            return NORMAL_EXIT;
-//        }
-//        else {
-//            char* cwd;
-//            string new_cwd = "";
-//            size_t cwd_size;
-//            getcwd(cwd, cwd_size);
-//            new_cwd.assign(cwd, cwd_size);
-//            
-//            // Add the new directory(ies)
-//            new_cwd += tokens[1];
-//            
-//            // Check the new_cwd exists before going there
-//            if (!opendir(new_cwd.c_str())) {
-//                perror("cd");
-//                return BAD_FILE_OR_DIR;
-//            }
-//            else {
-//                chdir(new_cwd.c_str());
-//                return NORMAL_EXIT;
-//            }
-//        }
-//    }
-//    // Too many arguemnts
-//    else {
-//        perror("cd");
-//        return INVALID_ARGUMENTS;
-//    }
-    return -1;
+    if (tokens.size() == 2) {
+        // If the first value is a '/', using an absolute path
+        if (tokens[1][0] == '/') {
+            chdir(tokens[1].c_str());
+            return NORMAL_EXIT;
+        }
+        else {
+            cout << "Inside the relative path logic" << endl;
+            
+            string cwd = getcwd(NULL, 0);
+            
+            // Add a slash
+            cwd += "/";
+            
+            // Add the new directory(ies)
+            cwd += tokens[1];
+            
+            // Check the new_cwd exists before going there
+            if (!opendir(cwd.c_str())) {
+                perror("cd");
+                return BAD_FILE_OR_DIR;
+            }
+            else {
+                chdir(cwd.c_str());
+                return NORMAL_EXIT;
+            }
+        }
+    }
+    // Too many arguemnts
+    else {
+        perror("cd");
+        return INVALID_ARGUMENTS;
+    }
 }
 
 
