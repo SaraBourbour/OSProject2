@@ -277,10 +277,16 @@ int main() {
             
             // Execute the line
             return_value = execute_line(tokens, builtins);
+            
+			// If the exit shell signal is the return code, then close the shell
+            if (return_value == SIGNAL_EXIT_SHELL) {
+                free(line);
+				return NORMAL_EXIT;
+            }
         }
         // Free the memory for the input string
         free(line);
     }
     
-    return 0;
+    return NORMAL_EXIT;
 }

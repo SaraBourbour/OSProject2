@@ -1,8 +1,6 @@
 #include "builtins.h"
 
-#define NORMAL_EXIT         int(0)
-#define BAD_FILE_OR_DIR     int(1)
-#define INVALID_ARGUMENTS   int(2)
+
 
 using namespace std;
 
@@ -104,9 +102,7 @@ int com_echo(vector<string>& tokens) {
 
 
 int com_exit(vector<string>& tokens) {
-    // TODO: YOUR CODE GOES HERE
-    cout << "exit called" << endl; // delete when implemented
-    return NORMAL_EXIT;
+    return SIGNAL_EXIT_SHELL;
 }
 
 

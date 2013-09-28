@@ -5,6 +5,6 @@ all: $(NAME)
 
 MyShell: $(OBJS)
 	g++ $(OBJS) -l readline -o $(NAME)
-	
+
 clean:
 	rm -rf $(NAME)
