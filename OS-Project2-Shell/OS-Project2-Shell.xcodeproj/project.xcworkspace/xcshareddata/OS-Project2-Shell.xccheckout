@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>0B865F60-04DA-401F-968E-17239AB9D5CF</string>
+	<key>IDESourceControlProjectName</key>
+	<string>OS-Project2-Shell</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>9FC74CE8-5102-4B91-B7B4-00E53E6D1666</key>
+		<string>ssh://toilers.mines.edu/f13/csci442/hlang/project2</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>OS-Project2-Shell/OS-Project2-Shell.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>9FC74CE8-5102-4B91-B7B4-00E53E6D1666</key>
+		<string>../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://toilers.mines.edu/f13/csci442/hlang/project2</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>9FC74CE8-5102-4B91-B7B4-00E53E6D1666</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>9FC74CE8-5102-4B91-B7B4-00E53E6D1666</string>
+			<key>IDESourceControlWCCName</key>
+			<string>project2</string>
+		</dict>
+	</array>
+</dict>
+</plist>
