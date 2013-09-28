@@ -1,8 +1,10 @@
 #include "builtins.h"
 
-using namespace std;
+#define NORMAL_EXIT         int(0)
+#define BAD_FILE_OR_DIR     int(1)
+#define INVALID_ARGUMENTS   int(2)
 
-string env_pwd = "/";
+using namespace std;
 
 
 int com_ls(vector<string>& tokens) {
@@ -17,10 +19,10 @@ int com_ls(vector<string>& tokens) {
     // catch an errors opening the directory
     if (!dir) {
         // print the error from the last system call with the given prefix
-        perror("ls error: ");
+        perror("ls");
         
         // return error
-        return 1;
+        return BAD_FILE_OR_DIR;
     }
     
     // output each entry in the directory
@@ -29,75 +31,97 @@ int com_ls(vector<string>& tokens) {
     }
     
     // return success
-    return 0;
+    return NORMAL_EXIT;
 }
 
 
 int com_cd(vector<string>& tokens) {
     cout << "cd called" << endl; // delete when implemented
-    
-    // If the size is one, check if that directory exists
-    if (tokens.size() == 1) {
-        // If the file does not exist, error
-
-        if (!opendir(pwd().append(tokens[0]).c_str())) {
-            perror("Error in cd: directory does not exist!");
-            exit(1);
-        }
-        // Else update pwd to the new directory
-        updatepwd(pwd().append(tokens[0]));
-    }
-    return 0;
+//    if (tokens.size() == 2) {
+//        // If the first value is a '/', using an absolute path
+//        if (tokens[1][0] == '/') {
+//            chdir(tokens[1].c_str());
+//            return NORMAL_EXIT;
+//        }
+//        else {
+//            char* cwd;
+//            string new_cwd = "";
+//            size_t cwd_size;
+//            getcwd(cwd, cwd_size);
+//            new_cwd.assign(cwd, cwd_size);
+//            
+//            // Add the new directory(ies)
+//            new_cwd += tokens[1];
+//            
+//            // Check the new_cwd exists before going there
+//            if (!opendir(new_cwd.c_str())) {
+//                perror("cd");
+//                return BAD_FILE_OR_DIR;
+//            }
+//            else {
+//                chdir(new_cwd.c_str());
+//                return NORMAL_EXIT;
+//            }
+//        }
+//    }
+//    // Too many arguemnts
+//    else {
+//        perror("cd");
+//        return INVALID_ARGUMENTS;
+//    }
+    return -1;
 }
 
 
 int com_pwd(vector<string>& tokens) {
-    // TODO: YOUR CODE GOES HERE
     // HINT: you should implement the actual fetching of the current directory in
     // pwd(), since this information is also used for your prompt
-    cout << "pwd called" << endl; // delete when implemented
-    return 0;
+    // There must not be any parameters to pwd
+    if (tokens.size() != 1) {
+        perror("pwd");
+        return INVALID_ARGUMENTS;
+    }
+    cout << pwd() << endl;
+    return NORMAL_EXIT;
 }
 
 
 int com_alias(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "alias called" << endl; // delete when implemented
-    return 0;
+    return 1;
 }
 
 
 int com_unalias(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "unalias called" << endl; // delete when implemented
-    return 0;
+    return NORMAL_EXIT;
 }
 
 
 int com_echo(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "echo called" << endl; // delete when implemented
-    return 0;
+    return NORMAL_EXIT;
 }
 
 
 int com_exit(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "exit called" << endl; // delete when implemented
-    return 0;
+    return NORMAL_EXIT;
 }
 
 
 int com_history(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "history called" << endl; // delete when implemented
-    return 0;
+    return NORMAL_EXIT;
 }
 
 string pwd() {
-    return env_pwd;
-}
-
-void updatepwd(string new_pwd) {
-    env_pwd = new_pwd;
+    return getcwd(NULL, 0);
+    
+    
 }

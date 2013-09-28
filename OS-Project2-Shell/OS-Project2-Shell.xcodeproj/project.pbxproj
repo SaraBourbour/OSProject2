@@ -7,31 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1F55E7BC17F7681D0066587B /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7BB17F7681D0066587B /* main.cpp */; };
-		1F55E7C817F768570066587B /* builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7C417F768570066587B /* builtins.cpp */; };
-		1F55E7C917F768570066587B /* makefile in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7C617F768570066587B /* makefile */; };
-		1F55E7CA17F768570066587B /* shell.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7C717F768570066587B /* shell.cpp */; };
+		1F55E7D417F784370066587B /* builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7C417F768570066587B /* builtins.cpp */; };
+		1F55E7D517F784370066587B /* shell.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F55E7C717F768570066587B /* shell.cpp */; };
+		1F55E7D717F784400066587B /* libreadline.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F55E7D617F784400066587B /* libreadline.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		1F55E7B617F7681D0066587B /* CopyFiles */ = {
+		1F55E7B617F7681D0066587B /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
 			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		1F55E7B817F7681D0066587B /* OS-Project2-Shell */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "OS-Project2-Shell"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1F55E7BB17F7681D0066587B /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1F55E7C417F768570066587B /* builtins.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = builtins.cpp; sourceTree = "<group>"; };
 		1F55E7C517F768570066587B /* builtins.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = builtins.h; sourceTree = "<group>"; };
-		1F55E7C617F768570066587B /* makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = makefile; sourceTree = "<group>"; };
+		1F55E7C617F768570066587B /* makefile */ = {isa = PBXFileReference; explicitFileType = sourcecode.make; fileEncoding = 4; path = makefile; sourceTree = "<group>"; };
 		1F55E7C717F768570066587B /* shell.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = shell.cpp; sourceTree = "<group>"; };
+		1F55E7D617F784400066587B /* libreadline.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libreadline.dylib; path = usr/lib/libreadline.dylib; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1F55E7D717F784400066587B /* libreadline.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -48,6 +49,7 @@
 		1F55E7AF17F7681D0066587B = {
 			isa = PBXGroup;
 			children = (
+				1F55E7D617F784400066587B /* libreadline.dylib */,
 				1F55E7BA17F7681D0066587B /* OS-Project2-Shell */,
 				1F55E7B917F7681D0066587B /* Products */,
 			);
@@ -68,7 +70,6 @@
 				1F55E7C517F768570066587B /* builtins.h */,
 				1F55E7C617F768570066587B /* makefile */,
 				1F55E7C717F768570066587B /* shell.cpp */,
-				1F55E7BB17F7681D0066587B /* main.cpp */,
 			);
 			path = "OS-Project2-Shell";
 			sourceTree = "<group>";
@@ -99,7 +100,7 @@
 			buildPhases = (
 				1F55E7B417F7681D0066587B /* Sources */,
 				1F55E7B517F7681D0066587B /* Frameworks */,
-				1F55E7B617F7681D0066587B /* CopyFiles */,
+				1F55E7B617F7681D0066587B /* Copy Files */,
 			);
 			buildRules = (
 			);
@@ -142,10 +143,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1F55E7BC17F7681D0066587B /* main.cpp in Sources */,
-				1F55E7C817F768570066587B /* builtins.cpp in Sources */,
-				1F55E7CA17F768570066587B /* shell.cpp in Sources */,
-				1F55E7C917F768570066587B /* makefile in Sources */,
+				1F55E7D417F784370066587B /* builtins.cpp in Sources */,
+				1F55E7D517F784370066587B /* shell.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +222,8 @@
 		1F55E7C217F7681D0066587B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LIBRARY = "libstdc++";
+				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -230,6 +231,8 @@
 		1F55E7C317F7681D0066587B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LIBRARY = "libstdc++";
+				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
