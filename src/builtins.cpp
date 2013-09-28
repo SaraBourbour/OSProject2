@@ -95,9 +95,28 @@ int com_unalias(vector<string>& tokens) {
 
 
 int com_echo(vector<string>& tokens) {
-    // TODO: YOUR CODE GOES HERE
-    cout << "echo called" << endl; // delete when implemented
-    return NORMAL_EXIT;
+	// If there's nothing to echo, echo nothing
+	if (tokens.size() == 1) {
+		cout << endl;
+		return NORMAL_EXIT;
+	}
+	// Else we hav to echo something
+	else {
+		// Parse all the tokens in the echo statement
+		for (int i = 1; i < tokens.size(); ++i) {
+			string tempToken = tokens[i];
+			if (i == tokens.size() - 1) {
+				cout << tokens[i] << endl;
+				return NORMAL_EXIT;
+			}
+			else {
+				cout << tokens[i] << " ";
+				//TODO: Stop if a pipe is encountered
+			}
+		}
+	}
+	// If echo does not run correctly, return abnormally
+	return ABNORMAL_EXEC;
 }
 
 
