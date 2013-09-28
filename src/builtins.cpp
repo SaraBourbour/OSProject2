@@ -8,6 +8,7 @@ using namespace std;
 
 
 int com_ls(vector<string>& tokens) {
+    
     // if no directory is given, use the local directory
     if (tokens.size() < 2) {
         tokens.push_back(".");
@@ -36,7 +37,7 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-    cout << "cd called" << endl; // delete when implemented
+    
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
@@ -44,16 +45,11 @@ int com_cd(vector<string>& tokens) {
             return NORMAL_EXIT;
         }
         else {
-            cout << "Inside the relative path logic" << endl;
-            
             string cwd = getcwd(NULL, 0);
-            
             // Add a slash
             cwd += "/";
-            
             // Add the new directory(ies)
             cwd += tokens[1];
-            
             // Check the new_cwd exists before going there
             if (!opendir(cwd.c_str())) {
                 perror("cd");
@@ -122,6 +118,4 @@ int com_history(vector<string>& tokens) {
 
 string pwd() {
     return getcwd(NULL, 0);
-    
-    
 }
