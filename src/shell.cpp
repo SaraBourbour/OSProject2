@@ -6,9 +6,6 @@
 #include <vector>
 #include <cctype>
 
-#include <readline/readline.h>
-#include <readline/history.h>
-
 #include "builtins.h"
 
 // Potentially useful #includes (either here or in builtins.h):

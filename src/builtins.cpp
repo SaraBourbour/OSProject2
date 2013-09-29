@@ -1,7 +1,6 @@
 #include "builtins.h"
 
 
-
 using namespace std;
 
 
@@ -122,8 +121,27 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
-    // TODO: YOUR CODE GOES HERE
-    cout << "history called" << endl; // delete when implemented
+    if (tokens.size() > 2) {
+		perror("history");
+		return TOO_MANY_ARGUMENTS;
+	}
+	else if (tokens.size() == 2) {
+		// Show amount of history
+		int show_amount = atoi(tokens[1].c_str());
+		for (int i = 1; i < history_length - show_amount; i++) {
+			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+		}
+	}
+	else if (tokens.size() == 1) {
+		for (int i = 1; i < history_length ; i++) {
+			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+		}
+	}
+	else {
+		// This should never happen, implies negative size
+		perror("history");
+		return ABNORMAL_EXEC;
+	}
     return NORMAL_EXIT;
 }
 

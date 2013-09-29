@@ -7,11 +7,16 @@
 #include <stdio.h>
 #include <unistd.h>
 
+// Readline lib
+#include <readline/readline.h>
+#include <readline/history.h>
+
 // Return codes for builtins
 #define NORMAL_EXIT         int(0)
 #define BAD_FILE_OR_DIR     int(1)
 #define INVALID_ARGUMENTS   int(2)
 #define ABNORMAL_EXEC		int(3)
+#define TOO_MANY_ARGUMENTS	int(4)
 
 // Signals for exiting shell
 #define SIGNAL_EXIT_SHELL   int(-1)
