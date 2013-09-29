@@ -127,24 +127,19 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
-	cout << "In history" << endl;
 	HIST_ENTRY *tempHistoryEntry = NULL;
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
-		cout << "Found 2 tokens" << endl;
 		// Show amount of history
 		if (atoi(tokens[1].c_str()) > history_length) {
 			perror("history");
 			return INVALID_ARGUMENTS;
 		}
 		int show_amount = atoi(tokens[1].c_str());
-		cout << "Show amount calculated" << endl;
-		// Under BSD history library, i should start at 0
-		// Under Linux history library, i should start at 1
-		for (int i = 1; i < history_length - show_amount; i++) {
+		for (int i = 0; i < history_length - show_amount; i++) {
 			tempHistoryEntry = history_get(i);
 			if (tempHistoryEntry == NULL) {
 				perror("Trying to parse a null history pointer, moving on:");
@@ -154,11 +149,10 @@ int com_history(vector<string>& tokens) {
 		}
 	}
 	else if (tokens.size() == 1) {
-		cout << "Found only one token" << endl;
-		cout << "Hitsory Length: " << history_length << endl;
+		cout << "History Length: " << history_length << endl;
 		// Under BSD history library, i should start at 0
 		// Under Linux history library, i should start at 1
-		for (int i = 1; i < history_length; i++) {
+		for (int i = 0; i < history_length; i++) {
 			cout << "On: " << i << endl;
 			tempHistoryEntry = history_get(i);
 			if (tempHistoryEntry == NULL) {
