@@ -332,7 +332,7 @@ int main() {
 	int return_second_value = NOT_READY;
 	
 	// Read in the history file
-	return_value = read_history(HISTORY_FILE);
+	return_value = read_history(NULL);
 	if (return_value != NORMAL_EXIT) {
 		perror("Could not load history from disk!");
 		cout << "Creating new blank history file." << endl;
