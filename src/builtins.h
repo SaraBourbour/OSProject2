@@ -22,6 +22,9 @@
 // Signals for exiting shell
 #define SIGNAL_EXIT_SHELL   int(-1)
 
+// Filename for history persistence
+#define HISTORY_FILE		"~/.h_history"
+
 using std::vector;
 using std::string;
 

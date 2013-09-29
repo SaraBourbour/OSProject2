@@ -117,6 +117,11 @@ int com_echo(vector<string>& tokens) {
 
 
 int com_exit(vector<string>& tokens) {
+	// Save the history
+	int return_value = write_history(NULL);
+	if (return_value != NORMAL_EXIT) {
+		perror("Could not save history file!");
+	}
     return SIGNAL_EXIT_SHELL;
 }
 
