@@ -25,6 +25,9 @@
 // Signals for exiting shell
 #define SIGNAL_EXIT_SHELL   int(-1)
 
+// Low level debugging switch
+#define LOW_LEVEL_DEBUG		false
+
 using std::vector;
 using std::string;
 
@@ -75,4 +78,6 @@ string pwd();
 string user();
 
 string last_command_status(int code);
+
+void debug_cout(string output);
 

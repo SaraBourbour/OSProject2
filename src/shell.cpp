@@ -364,7 +364,7 @@ int main() {
 	int return_second_value = NOT_READY;
     
     // Loop for multiple successive commands
-	cout << "Command loop start\n";
+	debug_cout("Command loop start\n");
     while (true) {
         
         // Get the prompt to show, based on the return value of the last command
@@ -372,52 +372,56 @@ int main() {
         
         // Read a line of input from the user
         char* line = readline(prompt.c_str());
-        cout << "Line read\n";
+        debug_cout("Line read\n");
         // If the pointer is null, then an EOF has been received (ctrl-d)
         if (!line) {
             break;
         }
-		cout << "Passed null line check\n";
+		debug_cout("Passed null line check\n");
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-			cout << "Command not empty\n";
+			debug_cout("Command not empty\n");
 			// Handle history substitutions
-			line = history_substitution(line);
-			cout << "Subs completed, line: " << line << endl;
+			//line = history_substitution(line);
+			stringstream debug;
+			debug <<"Subs completed, line: " << line << endl;
+			debug_cout(debug.str());
 			// If null, there was a substitution error
 			if (!line) {
-				cout << "SUB ERROR!!" << endl;
+				debug_cout("SUB ERROR!!\n");
 				return_second_value = return_value;
 				return_value = BAD_SUBSTITUTION;
 				continue;
 			}
-			cout << "Passed the null line check\n";
+			debug_cout("Passed the null line check\n");
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
-			cout << "Input tokenized\n";
+			debug_cout("Input tokenized\n");
 			if (tokens[0] != "history") {
-				cout << "Adding to history\n";
+				debug_cout("Adding to history\n");
 				// Add this command to readline's history
 				add_history(line);
-				cout << "Added to history\n";
+				debug_cout("Added to history\n");
 				// Update history file
 				if (write_history(NULL) != NORMAL_EXIT) {
 					perror("Could not save history file!");
 				}
-				cout << "Wrote history, passed return value check\n";
+				debug_cout("Wrote history, passed return value check\n");
 			}
         
             // Handle local variable declarations
             local_variable_assignment(tokens);
-            cout << "Local variables assigned\n";
+            debug_cout("Local variables assigned\n");
             // Substitute variable references
             variable_substitution(tokens);
-            cout << "Variables substituted\n";
+            debug_cout("Variables substituted\n");
 			return_second_value = return_value;
-			cout << "Updated second return value\n";
+			debug_cout("Updated second return value\n");
+			debug_cout("----------------------EXECUTION OUTPUT----------------------\n");
             // Execute the line
             return_value = execute_line(tokens, builtins);
-			cout << "Line completed execution\n";
+			debug_cout("-------------------END EXECUTION OUTPUT---------------------\n");
+			debug_cout("Line completed execution\n");
 			// If the exit shell signal is the return code, then close the shell
 			if (return_value != NORMAL_EXIT) {
 				switch (return_value) {
@@ -433,7 +437,7 @@ int main() {
 						break;
 				}
 			}
-			cout << "Passed the return value checks\n";
+			debug_cout("Passed the return value checks\n");
         }
         // Free the memory for the input string
         free(line);

@@ -34,15 +34,17 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-    cout << "All tokens in cd: ";
-	for (int i=0; i<tokens.size(); i++) {
-		cout << tokens[i] << " ";
+    debug_cout("All tokens in cd: ");
+	if (LOW_LEVEL_DEBUG) {
+		for (int i=0; i<tokens.size(); i++) {
+			debug_cout(tokens[i] + " ");
+		}
+		debug_cout("\n");
 	}
-	cout << endl;
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
-			cout << "Changing to: " << tokens[1] << endl;
+			debug_cout("Changing to: " + tokens[1] + "\n");
             chdir(tokens[1].c_str());
             return NORMAL_EXIT;
         }
@@ -127,33 +129,35 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
-	cout << "In history\n";
+	debug_cout("In history\n");
 	if (history_length == 0) {
 		return NORMAL_EXIT;
 	}
-	cout << "Passed no history check\n";
+	debug_cout("Passed no history check\n");
 	HIST_ENTRY *tempHistoryEntry = NULL;
-	cout << "Temp entry created\n";
+	debug_cout("Temp entry created\n");
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
-		cout << "Passed too many arguments check\n";
-		cout << "Two tokens found\n";
+		debug_cout("Passed too many arguments check\n");
+		debug_cout("Two tokens found\n");
 		// Show amount of history
 		if (atoi(tokens[1].c_str()) > history_length) {
 			perror("history");
 			return INVALID_ARGUMENTS;
 		}
-		cout << "Passed too large number check\n";
+		debug_cout("Passed too large number check\n");
 		int show_amount = atoi(tokens[1].c_str());
-		cout << "Show amount calculated\n";
+		debug_cout("Show amount calculated\n");
 		for (int i = 0; i < history_length - show_amount; i++) {
 			tempHistoryEntry = history_get(i);
-			cout << "Got new history element at: " << i << endl;
+			stringstream debug;
+			debug << "Got a new history element at: " << i << "\n";
+			debug_cout(debug.str());
 			if (tempHistoryEntry == NULL) {
-				cout << "Element was null!" << endl;
+				debug_cout("Element was null!\n");
 				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
 //				perror("Trying to parse a null history pointer, moving on:");
 				continue;
@@ -162,13 +166,15 @@ int com_history(vector<string>& tokens) {
 		}
 	}
 	else if (tokens.size() == 1) {
-		cout << "Passed too many arguments check\n";
-		cout << "Found only one token\n";
+		debug_cout("Passed too many arguments check\n");
+		debug_cout("Found only one token\n");
 		for (int i = 0; i < history_length; i++) {
 			tempHistoryEntry = history_get(i);
-			cout << "Got a new history element at: " << i << endl;
+			stringstream debug;
+			debug << "Got a new history element at: " << i << "\n";
+			debug_cout(debug.str());
 			if (tempHistoryEntry == NULL) {
-				cout << "Element was null!" << endl;
+				debug_cout("Element was null!\n");
 				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
 //				perror("Trying to parse a null history pointer, moving on:");
 				continue;
@@ -177,7 +183,7 @@ int com_history(vector<string>& tokens) {
 		}
 	}
 	else {
-		cout << "WTF?! NEGATIVE ARRAY SIZE!?\n";
+		debug_cout("WTF?! NEGATIVE ARRAY SIZE!?\n");
 		// This should never happen, implies negative size
 		perror("history");
 		return ABNORMAL_EXEC;
@@ -197,4 +203,10 @@ string last_command_status(int code) {
 	ss << "lc: ";
 	ss << code;
 	return ss.str();
+}
+
+void debug_cout(string output) {
+	if (LOW_LEVEL_DEBUG) {
+		cout << output;
+	}
 }
