@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sstream>
 
 // Readline lib
 #include <readline/readline.h>
@@ -67,5 +68,8 @@ int com_history(vector<string>& tokens);
 // Returns the current working directory.
 string pwd();
 
-int prepare_command(vector<string>& tokens);
+// Returns the current user.
+string user();
+
+string last_command_status(int code);
 

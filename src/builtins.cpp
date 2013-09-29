@@ -38,6 +38,7 @@ int com_cd(vector<string>& tokens) {
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
+			cout << "Changing to: " << tokens[1] << endl;
             chdir(tokens[1].c_str());
             return NORMAL_EXIT;
         }
@@ -135,17 +136,11 @@ int com_history(vector<string>& tokens) {
 		for (int i = 0; i < history_length - show_amount; i++) {
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
-//		for (int i = 0; i < history_length - show_amount; i++) {
-//			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
-//		}
 	}
 	else if (tokens.size() == 1) {
 		for (int i = 0; i < history_length; i++) {
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
-//		for (int i = 0; i <= history_length ; i++) {
-//			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
-//		}
 	}
 	else {
 		// This should never happen, implies negative size
@@ -157,4 +152,14 @@ int com_history(vector<string>& tokens) {
 
 string pwd() {
     return getcwd(NULL, 0);
+}
+
+string user() {
+	return getenv("USER");
+}
+string last_command_status(int code) {
+	stringstream ss;
+	ss << "lc: ";
+	ss << code;
+	return ss.str();
 }
