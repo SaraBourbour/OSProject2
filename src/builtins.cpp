@@ -34,7 +34,11 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-    
+    cout << "All tokens in cd: ";
+	for (int i=0; i<tokens.size(); i++) {
+		cout << tokens[i] << " ";
+	}
+	cout << endl;
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
@@ -59,6 +63,10 @@ int com_cd(vector<string>& tokens) {
             }
         }
     }
+	else if (tokens.size() == 1) {
+		chdir(getenv("HOME"));
+		return NORMAL_EXIT;
+	}
     // Too many arguemnts
     else {
         perror("cd");
@@ -114,16 +122,14 @@ int com_echo(vector<string>& tokens) {
 
 
 int com_exit(vector<string>& tokens) {
-	// Save the history
-	int return_value = write_history(NULL);
-	if (return_value != NORMAL_EXIT) {
-		perror("Could not save history file!");
-	}
     return SIGNAL_EXIT_SHELL;
 }
 
 
 int com_history(vector<string>& tokens) {
+	if (history_length == 0) {
+		return NORMAL_EXIT;
+	}
 	HIST_ENTRY *tempHistoryEntry = NULL;
     if (tokens.size() > 2) {
 		perror("history");

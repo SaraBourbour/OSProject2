@@ -19,6 +19,9 @@
 #define ABNORMAL_EXEC		int(3)
 #define TOO_MANY_ARGUMENTS	int(4)
 #define NOT_READY			int(5)
+#define CMD_NOT_FOUND		int(6)
+#define BLANK_COMMAND		int(7)
+#define BAD_SUBSTITUTION	int(8)
 // Signals for exiting shell
 #define SIGNAL_EXIT_SHELL   int(-1)
 

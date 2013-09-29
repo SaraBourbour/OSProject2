@@ -42,7 +42,7 @@ map<string, string> localvars;
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
     // TODO: YOUR CODE GOES HERE
-    return 0;
+    return CMD_NOT_FOUND;
 }
 
 
@@ -169,12 +169,12 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
         
         if (cmd == builtins.end()) {
-            return_value = execute_external_command(tokens);
+            return execute_external_command(tokens);
         } else {
-            return_value = ((*cmd->second)(tokens));
+            return ((*cmd->second)(tokens));
         }
     }
-    return return_value;
+    return BLANK_COMMAND;
 }
 
 
@@ -222,88 +222,93 @@ void local_variable_assignment(vector<string>& tokens) {
     }
 }
 
-char* history_substitution(char* line) {
-	string newLine = "";
+char* history_substitution(char* char_line) {
+	if (history_length == 0) {
+		return char_line;
+	}
+	string string_line = char_line;
 	int offset = 0;
 	bool changed = false;
-	// Parse all the chars in the array
-	for (int i = 0; i < sizeof(line); i++) {
-		// Found one !
-		if (line[i] == '!') {
-			// Found another !
-			if (line[i + 1] == '!') {
-				// Substitute last
-				newLine.append(history_get(history_length - 1)->line);
-				changed = true;
-				++i;
+	size_t found = 0;
+	const char* last_command = history_get(history_length - 1)->line;
+	
+	// Loop to find all the !! commands and replace them
+	while (found != string::npos) {
+		found = string_line.find("!!");
+		if (found != string::npos) {
+			string_line.replace(found, 2, last_command);
+			changed = true;
+		}
+	}
+	
+	found = 0;
+	while (found != string::npos) {
+		cout << "In the while loop" << endl;
+		found = string_line.find("!");
+		if (found == string::npos) {
+			// No more !'s, stop loop
+			break;
+		}
+		cout << "Found a single !" << endl;
+		string string_offset = "";
+		int offset;
+		bool negate = false;
+		// Generate offset, as a string
+		cout << "Generating offset" << endl;
+		for (int i = found + 1; i < string_line.length(); i++) {
+			if (string_line[i] == '-') {
+				negate = true;
 				continue;
 			}
-			// Found a -
-			else if (line[i + 1] == '-') {
-				if (!isdigit(line[i + 2])) {
-					// Not of form !-{#}
-					// Bad history command
-					i += 2;
-					continue;
-				}
-				// Found a number
-				else {
-					// Prepare the final value
-					string historyNumber;
-					historyNumber += line[i + 2];
-					// Generate the offset
-					for (int j = i + 1; j < sizeof(line); j++) {
-						if (isdigit(line[j])) {
-							historyNumber += line[j];
-						}
-						else {
-							offset = atoi(historyNumber.c_str());
-							i = j;
-							break;
-						}
-					}
-					// Append the end - offset value
-					changed = true;
-					newLine.append(history_get(history_length - offset)->line);
-				}
+			if (!isdigit(string_line[i])) {
+				break;
 			}
-			// Found a #
-			else if (isdigit(line[i + 1])) {
-				string historyNumber;
-				historyNumber += line[i + 1];
-				// Prepare the final value, save the offset
-				for (int j = i + 2; j < sizeof(line); ++j) {
-					if (isdigit(line[j])) {
-						historyNumber += line[j];
-					}
-					else {
-						offset = atoi(historyNumber.c_str());
-						i = j;
-						break;
-					}
-				}
-				// Append the offset value
-				changed = true;
-				newLine.append(history_get(offset)->line);
+			string_offset += string_line[i];
+		}
+		// If no offset was generated
+		if (string_offset == "") {
+			continue;
+		}
+		offset = atoi(string_offset.c_str());
+		cout << "Complete. Offset: " << offset << endl;
+		cout << "Preparing for substitution" << endl;
+		if (negate) {
+			if (offset > history_length) {
+				cerr << "!-" << offset << ": event not found" << endl;
+				return NULL;
+			}
+			else {
+				cout << "Subbing negated offset" << endl;
+				const char* history_command = history_get(history_length - offset)-> line;
+				string_line.replace(found, sizeof(history_command), history_command);
 			}
 		}
-		// No ! found, append the char as is
 		else {
-			newLine += line[i];
+			if (offset > history_length) {
+				cerr << "!" << offset << ": event not found" << endl;
+				return NULL;
+			}
+			else {
+				cout << "Subbing offset" << endl;
+				const char* history_command = history_get(offset)->line;
+				string_line.replace(found, sizeof(history_command), history_command);
+			}
 		}
+		cout << "Iteration complete" << endl;
 	}
+
 	// Don't leak the previous line
-	free(line);
+	free(char_line);
 	// Create a new space for the line
-	line = new char[newLine.size()];
+	char_line = new char[string_line.size()];
 	// Copy over contents of newLine
-	memcpy(line, newLine.c_str(), newLine.size());
+	memcpy(char_line, string_line.c_str(), string_line.size());
 	// If the line was changed print it out, like BASH
 	if (changed) {
-		cout << line << endl;
+		cout << char_line << endl;
 	}
 	// Return the new line
-	return line;
+	return char_line;
 }
 
 void initializeShell() {
@@ -373,6 +378,15 @@ int main() {
 			
 			// Handle history substitutions
 			line = history_substitution(line);
+			
+			// If null, there was a substitution error
+			if (!line) {
+				return_second_value = return_value;
+				return_value = BAD_SUBSTITUTION;
+				continue;
+			}
+			
+			cout << "Post Sub: " << line << endl;
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
@@ -380,6 +394,10 @@ int main() {
 			if (tokens[0] != "history") {
 				// Add this command to readline's history
 				add_history(line);
+				// Update history file
+				if (write_history(NULL) != NORMAL_EXIT) {
+					perror("Could not save history file!");
+				}
 			}
         
             // Handle local variable declarations
@@ -398,6 +416,16 @@ int main() {
                 free(line);
 				return return_second_value;
             }
+			else if (return_value != NORMAL_EXIT) {
+				switch (return_value) {
+					case CMD_NOT_FOUND:
+						cerr << line << ": command not found\n";
+						break;
+						
+					default:
+						break;
+				}
+			}
         }
         // Free the memory for the input string
         free(line);
