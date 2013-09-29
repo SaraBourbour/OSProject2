@@ -230,7 +230,15 @@ char* history_substitution(char* char_line) {
 	int offset = 0;
 	bool changed = false;
 	size_t found = 0;
-	const char* last_command = history_get(history_length - 1)->line;
+	
+	HIST_ENTRY* last_command_entity = history_get(history_length);
+	const char* last_command = NULL;
+	if (last_command_entity != NULL) {
+		last_command = last_command_entity->line;
+	}
+	else {
+		return NULL;
+	}
 	
 	// Loop to find all the !! commands and replace them
 	while (found != string::npos) {
