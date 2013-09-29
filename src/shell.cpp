@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cctype>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -224,6 +225,90 @@ void local_variable_assignment(vector<string>& tokens) {
     }
 }
 
+char* history_substitution(char* line) {
+	string newLine = "";
+	int offset = 0;
+	bool changed = false;
+	// Parse all the chars in the array
+	for (int i = 0; i < sizeof(line); i++) {
+		// Found one !
+		if (line[i] == '!') {
+			// Found another !
+			if (line[i + 1] == '!') {
+				// Substitute last command
+				newLine.append(history_get(history_length - 1)->line);
+				changed = true;
+				++i;
+				continue;
+			}
+			// Found a -
+			else if (line[i + 1] == '-') {
+				if (!isdigit(line[i + 2])) {
+					// Not of form !-{#}
+					// Bad history command
+					i += 2;
+					continue;
+				}
+				// Found a number
+				else {
+					// Prepare the final value
+					string historyNumber;
+					historyNumber += line[i + 2];
+					// Generate the offset
+					for (int j = i + 1; j < sizeof(line); j++) {
+						if (isdigit(line[j])) {
+							historyNumber += line[j];
+						}
+						else {
+							offset = atoi(historyNumber.c_str());
+							i = j;
+							break;
+						}
+					}
+					// Append the end - offset value
+					changed = true;
+					newLine.append(history_get(history_length - offset)->line);
+				}
+			}
+			// Found a #
+			else if (isdigit(line[i + 1])) {
+				string historyNumber;
+				historyNumber += line[i + 1];
+				// Prepare the final value, save the offset
+				for (int j = i + 1; j < sizeof(line); ++j) {
+					if (isdigit(line[j])) {
+						historyNumber += line[j];
+					}
+					else {
+						offset = atoi(historyNumber.c_str());
+						i = j;
+						break;
+					}
+				}
+				// Append the offset value
+				changed = true;
+				newLine.append(history_get(offset)->line);
+			}
+		}
+		// No ! found, append the char as is
+		else {
+			newLine += line[i];
+		}
+	}
+	// If the line was changed print it out, like BASH
+	if (changed) {
+		cout << newLine << endl;
+	}
+	// Don't leak the previous line
+	free(line);
+	// Create a new space for the line
+	line = new char[newLine.size() + 1];
+	// Copy over contents of newLine
+	memcpy(line, newLine.c_str(), newLine.size() + 1);
+	// Return the new line
+	return line;
+}
+
 
 // The main program
 int main() {
@@ -265,12 +350,15 @@ int main() {
         
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-            
-            // Add this command to readline's history
-            add_history(line);
+			
+			// Handle history substitutions
+			line = history_substitution(line);
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
+			
+			// Add this command to readline's history
+            add_history(line);
             
             // Handle local variable declarations
             local_variable_assignment(tokens);
