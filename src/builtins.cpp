@@ -142,21 +142,19 @@ int com_history(vector<string>& tokens) {
 		for (int i = 0; i < history_length - show_amount; i++) {
 			tempHistoryEntry = history_get(i);
 			if (tempHistoryEntry == NULL) {
-				perror("Trying to parse a null history pointer, moving on:");
+				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
+//				perror("Trying to parse a null history pointer, moving on:");
 				continue;
 			}
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
 	}
 	else if (tokens.size() == 1) {
-		cout << "History Length: " << history_length << endl;
-		// Under BSD history library, i should start at 0
-		// Under Linux history library, i should start at 1
 		for (int i = 0; i < history_length; i++) {
-			cout << "On: " << i << endl;
 			tempHistoryEntry = history_get(i);
 			if (tempHistoryEntry == NULL) {
-				perror("Trying to parse a null history pointer, moving on:");
+				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
+//				perror("Trying to parse a null history pointer, moving on:");
 				continue;
 			}
 			cout << "   " << i << "  " << history_get(i)->line << endl;
