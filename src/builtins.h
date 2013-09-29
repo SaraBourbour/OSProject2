@@ -62,6 +62,5 @@ int com_history(vector<string>& tokens);
 // Returns the current working directory.
 string pwd();
 
-// Returns true if the number is a valid positive number
-bool isAValidPositiveNumber(string input);
+int prepare_command(vector<string>& tokens);
 

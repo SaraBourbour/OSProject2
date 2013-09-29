@@ -127,22 +127,6 @@ int com_history(vector<string>& tokens) {
     return NORMAL_EXIT;
 }
 
-// !! comamnd
-int com_history_last(vector<string>& tokens) {
-	
-}
-
-// !# command
-int com_history_last_nth(vector<string>& tokens, int command_number) {
-	
-}
-
 string pwd() {
     return getcwd(NULL, 0);
-}
-
-bool isAValidPositiveNumber(string input) {
-	for (int i = 0; i < input.size(); i++) {
-		
-	}
 }
