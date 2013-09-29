@@ -373,13 +373,15 @@ int main() {
 			
 			// Handle history substitutions
 			line = history_substitution(line);
-			
-			// Add this command to readline's history
-			add_history(line);
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
-            
+			
+			if (tokens[0] != "history") {
+				// Add this command to readline's history
+				add_history(line);
+			}
+        
             // Handle local variable declarations
             local_variable_assignment(tokens);
             
