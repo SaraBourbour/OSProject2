@@ -17,7 +17,7 @@
 #define INVALID_ARGUMENTS   int(2)
 #define ABNORMAL_EXEC		int(3)
 #define TOO_MANY_ARGUMENTS	int(4)
-
+#define NOT_READY			int(5)
 // Signals for exiting shell
 #define SIGNAL_EXIT_SHELL   int(-1)
 

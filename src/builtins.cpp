@@ -128,12 +128,12 @@ int com_history(vector<string>& tokens) {
 	else if (tokens.size() == 2) {
 		// Show amount of history
 		int show_amount = atoi(tokens[1].c_str());
-		for (int i = 1; i < history_length - show_amount; i++) {
+		for (int i = 0; i < history_length - show_amount; i++) {
 			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
 		}
 	}
 	else if (tokens.size() == 1) {
-		for (int i = 1; i < history_length ; i++) {
+		for (int i = 0; i < history_length ; i++) {
 			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
 		}
 	}

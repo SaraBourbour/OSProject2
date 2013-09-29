@@ -232,7 +232,7 @@ char* history_substitution(char* line) {
 		if (line[i] == '!') {
 			// Found another !
 			if (line[i + 1] == '!') {
-				// Substitute last command
+				// Substitute last
 				newLine.append(history_get(history_length - 1)->line);
 				changed = true;
 				++i;
@@ -292,16 +292,16 @@ char* history_substitution(char* line) {
 			newLine += line[i];
 		}
 	}
-	// If the line was changed print it out, like BASH
-	if (changed) {
-		cout << newLine << endl;
-	}
 	// Don't leak the previous line
 	free(line);
 	// Create a new space for the line
-	line = new char[newLine.size() + 1];
+	line = new char[newLine.size()];
 	// Copy over contents of newLine
-	memcpy(line, newLine.c_str(), newLine.size() + 1);
+	memcpy(line, newLine.c_str(), newLine.size());
+	// If the line was changed print it out, like BASH
+	if (changed) {
+		cout << line << endl;
+	}
 	// Return the new line
 	return line;
 }
@@ -329,7 +329,7 @@ int main() {
     int return_value = 0;
 	
 	// The return value of the second last command
-	int return_second_value = 0;
+	int return_second_value = NOT_READY;
     
     // Loop for multiple successive commands
     while (true) {
@@ -347,15 +347,16 @@ int main() {
         
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-			
-			// Handle history substitutions
-			line = history_substitution(line);
+			if (!(return_second_value == NOT_READY)) {
+				// Handle history substitutions
+				line = history_substitution(line);
+				
+				// Add this command to readline's history
+				add_history(line);
+			}
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
-			
-			// Add this command to readline's history
-            add_history(line);
             
             // Handle local variable declarations
             local_variable_assignment(tokens);
