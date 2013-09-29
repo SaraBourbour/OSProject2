@@ -68,9 +68,6 @@ int com_cd(vector<string>& tokens) {
 
 
 int com_pwd(vector<string>& tokens) {
-    // HINT: you should implement the actual fetching of the current directory in
-    // pwd(), since this information is also used for your prompt
-    // There must not be any parameters to pwd
     cout << pwd() << endl;
     return NORMAL_EXIT;
 }
