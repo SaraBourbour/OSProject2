@@ -127,24 +127,33 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
+	cout << "In history\n";
 	if (history_length == 0) {
 		return NORMAL_EXIT;
 	}
+	cout << "Passed no history check\n";
 	HIST_ENTRY *tempHistoryEntry = NULL;
+	cout << "Temp entry created\n";
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
+		cout << "Passed too many arguments check\n";
+		cout << "Two tokens found\n";
 		// Show amount of history
 		if (atoi(tokens[1].c_str()) > history_length) {
 			perror("history");
 			return INVALID_ARGUMENTS;
 		}
+		cout << "Passed too large number check\n";
 		int show_amount = atoi(tokens[1].c_str());
+		cout << "Show amount calculated\n";
 		for (int i = 0; i < history_length - show_amount; i++) {
 			tempHistoryEntry = history_get(i);
+			cout << "Got new history element at: " << i << endl;
 			if (tempHistoryEntry == NULL) {
+				cout << "Element was null!" << endl;
 				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
 //				perror("Trying to parse a null history pointer, moving on:");
 				continue;
@@ -153,9 +162,13 @@ int com_history(vector<string>& tokens) {
 		}
 	}
 	else if (tokens.size() == 1) {
+		cout << "Passed too many arguments check\n";
+		cout << "Found only one token\n";
 		for (int i = 0; i < history_length; i++) {
 			tempHistoryEntry = history_get(i);
+			cout << "Got a new history element at: " << i << endl;
 			if (tempHistoryEntry == NULL) {
+				cout << "Element was null!" << endl;
 				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
 //				perror("Trying to parse a null history pointer, moving on:");
 				continue;
@@ -164,6 +177,7 @@ int com_history(vector<string>& tokens) {
 		}
 	}
 	else {
+		cout << "WTF?! NEGATIVE ARRAY SIZE!?\n";
 		// This should never happen, implies negative size
 		perror("history");
 		return ABNORMAL_EXEC;
