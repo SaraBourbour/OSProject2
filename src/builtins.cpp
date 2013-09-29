@@ -147,7 +147,9 @@ int com_history(vector<string>& tokens) {
 	}
 	else if (tokens.size() == 1) {
 		cout << "Found only one token" << endl;
+		cout << "Hitsory Length: " << history_length << endl;
 		for (int i = 0; i < history_length; i++) {
+			cout << "On: " << i << endl;
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
 	}
