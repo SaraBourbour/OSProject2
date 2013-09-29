@@ -198,7 +198,7 @@ void variable_substitution(vector<string>& tokens) {
                 *token = "";
             }
         }
-    }
+	}
 }
 
 
@@ -245,6 +245,9 @@ int main() {
     
     // The return value of the last command executed
     int return_value = 0;
+	
+	// The return value of the second last command
+	int return_second_value = 0;
     
     // Loop for multiple successive commands
     while (true) {
@@ -275,13 +278,15 @@ int main() {
             // Substitute variable references
             variable_substitution(tokens);
             
+			return_second_value = return_value;
+			
             // Execute the line
             return_value = execute_line(tokens, builtins);
-            
+			
 			// If the exit shell signal is the return code, then close the shell
             if (return_value == SIGNAL_EXIT_SHELL) {
                 free(line);
-				return NORMAL_EXIT;
+				return return_second_value;
             }
         }
         // Free the memory for the input string

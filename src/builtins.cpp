@@ -71,10 +71,6 @@ int com_pwd(vector<string>& tokens) {
     // HINT: you should implement the actual fetching of the current directory in
     // pwd(), since this information is also used for your prompt
     // There must not be any parameters to pwd
-    if (tokens.size() != 1) {
-        perror("pwd");
-        return INVALID_ARGUMENTS;
-    }
     cout << pwd() << endl;
     return NORMAL_EXIT;
 }
@@ -131,6 +127,22 @@ int com_history(vector<string>& tokens) {
     return NORMAL_EXIT;
 }
 
+// !! comamnd
+int com_history_last(vector<string>& tokens) {
+	
+}
+
+// !# command
+int com_history_last_nth(vector<string>& tokens, int command_number) {
+	
+}
+
 string pwd() {
     return getcwd(NULL, 0);
+}
+
+bool isAValidPositiveNumber(string input) {
+	for (int i = 0; i < input.size(); i++) {
+		
+	}
 }
