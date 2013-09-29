@@ -127,22 +127,26 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
+	cout << "In history" << endl;
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
+		cout << "Found 2 tokens" << endl;
 		// Show amount of history
 		if (atoi(tokens[1].c_str()) > history_length) {
 			perror("history");
 			return INVALID_ARGUMENTS;
 		}
 		int show_amount = atoi(tokens[1].c_str());
+		cout << "Show amount calculated" << endl;
 		for (int i = 0; i < history_length - show_amount; i++) {
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
 	}
 	else if (tokens.size() == 1) {
+		cout << "Found only one token" << endl;
 		for (int i = 0; i < history_length; i++) {
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
