@@ -128,6 +128,7 @@ int com_exit(vector<string>& tokens) {
 
 int com_history(vector<string>& tokens) {
 	cout << "In history" << endl;
+	HIST_ENTRY *tempHistoryEntry = NULL;
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
@@ -142,6 +143,11 @@ int com_history(vector<string>& tokens) {
 		int show_amount = atoi(tokens[1].c_str());
 		cout << "Show amount calculated" << endl;
 		for (int i = 0; i < history_length - show_amount; i++) {
+			tempHistoryEntry = history_get(i);
+			if (tempHistoryEntry == NULL) {
+				perror("Trying to parse a null history pointer, moving on.");
+				continue;
+			}
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
 	}
@@ -150,6 +156,11 @@ int com_history(vector<string>& tokens) {
 		cout << "Hitsory Length: " << history_length << endl;
 		for (int i = 0; i < history_length; i++) {
 			cout << "On: " << i << endl;
+			tempHistoryEntry = history_get(i);
+			if (tempHistoryEntry == NULL) {
+				perror("Trying to parse a null history pointer, moving on.");
+				continue;
+			}
 			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
 	}
