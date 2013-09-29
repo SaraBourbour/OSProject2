@@ -34,8 +34,8 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-    debug_cout("All tokens in cd: ");
 	if (LOW_LEVEL_DEBUG) {
+		debug_cout("All tokens in cd: ");
 		for (int i=0; i<tokens.size(); i++) {
 			debug_cout(tokens[i] + " ");
 		}
@@ -45,8 +45,14 @@ int com_cd(vector<string>& tokens) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
 			debug_cout("Changing to: " + tokens[1] + "\n");
-            chdir(tokens[1].c_str());
-            return NORMAL_EXIT;
+            int ret_val = chdir(tokens[1].c_str());
+			stringstream debug;
+			debug << "Return value of chdir: " << ret_val << "\n";
+			debug_cout(debug.str());
+			if (ret_val != NORMAL_EXIT) {
+				perror("cd");
+			}
+            return ret_val;
         }
         else {
             string cwd = getcwd(NULL, 0);
