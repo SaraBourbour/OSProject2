@@ -51,7 +51,7 @@ int execute_external_command(vector<string> tokens) {
 // indicate the result (success or failure) of the last command.
 string get_prompt(int return_value) {
     string prompt = "";
-    prompt = user() + " | " + pwd() + " | " + last_command_status(return_value) + "\n\t% ";
+    prompt = user() + " | " + pwd() + " | " + last_command_status(return_value) + "\n   % ";
     return prompt;
 }
 
