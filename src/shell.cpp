@@ -306,10 +306,8 @@ char* history_substitution(char* line) {
 	return line;
 }
 
-
-// The main program
-int main() {
-    // Populate the map of available built-in functions
+void initializeShell() {
+	// Populate the map of available built-in functions
     builtins["ls"] = &com_ls;
     builtins["cd"] = &com_cd;
     builtins["pwd"] = &com_pwd;
@@ -324,15 +322,12 @@ int main() {
     
     // Tell the completer that we want to try completion first
     rl_attempted_completion_function = word_completion;
-    
-    // The return value of the last command executed
-    int return_value = 0;
 	
-	// The return value of the second last command
-	int return_second_value = NOT_READY;
+	// Print out greeting
+	cout << "Initializing hsh, v1.0.0:\n  User: " << user() << "\n  Home: " << getenv("HOME") << "\n  PWD: " << pwd() << "\n\n";
 	
 	// Read in the history file
-	return_value = read_history(NULL);
+	int return_value = read_history(NULL);
 	if (return_value != NORMAL_EXIT) {
 		perror("Could not load history from disk!");
 		cout << "Creating new blank history file." << endl;
@@ -341,6 +336,23 @@ int main() {
 			perror("Could not make new history file! History will not be persistent!");
 		}
 	}
+	
+	// Initialization complete message
+	cout << "\nHsh initialization complete!\n\n";
+}
+
+
+// The main program
+int main() {
+	
+	initializeShell();
+
+    
+    // The return value of the last command executed
+    int return_value = 0;
+	
+	// The return value of the second last command
+	int return_second_value = NOT_READY;
     
     // Loop for multiple successive commands
     while (true) {
