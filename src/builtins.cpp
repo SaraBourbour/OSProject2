@@ -127,15 +127,25 @@ int com_history(vector<string>& tokens) {
 	}
 	else if (tokens.size() == 2) {
 		// Show amount of history
+		if (atoi(tokens[1].c_str()) > history_length) {
+			perror("history");
+			return INVALID_ARGUMENTS;
+		}
 		int show_amount = atoi(tokens[1].c_str());
 		for (int i = 0; i < history_length - show_amount; i++) {
-			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
+//		for (int i = 0; i < history_length - show_amount; i++) {
+//			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+//		}
 	}
 	else if (tokens.size() == 1) {
-		for (int i = 0; i < history_length ; i++) {
-			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+		for (int i = 0; i < history_length; i++) {
+			cout << "   " << i << "  " << history_get(i)->line << endl;
 		}
+//		for (int i = 0; i <= history_length ; i++) {
+//			cout << "   " << history_length - i << "  " << history_get(i)->line << endl;
+//		}
 	}
 	else {
 		// This should never happen, implies negative size

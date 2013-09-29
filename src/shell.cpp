@@ -230,17 +230,23 @@ char* history_substitution(char* line) {
 	for (int i = 0; i < sizeof(line); i++) {
 		// Found one !
 		if (line[i] == '!') {
+			cout << "One !" << endl;
 			// Found another !
 			if (line[i + 1] == '!') {
+				cout << "Two !" << endl;
 				// Substitute last
+				cout << "Appending to newLine" << endl;
 				newLine.append(history_get(history_length - 1)->line);
 				changed = true;
 				++i;
+				cout << "Completed substitution" << endl;
 				continue;
 			}
 			// Found a -
 			else if (line[i + 1] == '-') {
+				cout << "Found a -" << endl;
 				if (!isdigit(line[i + 2])) {
+					cout << "Bad substitution." << endl;
 					// Not of form !-{#}
 					// Bad history command
 					i += 2;
@@ -248,10 +254,12 @@ char* history_substitution(char* line) {
 				}
 				// Found a number
 				else {
+					cout << "Found a number: " << line[i+1] << endl;
 					// Prepare the final value
 					string historyNumber;
 					historyNumber += line[i + 2];
 					// Generate the offset
+					cout << "Getting offset" << endl;
 					for (int j = i + 1; j < sizeof(line); j++) {
 						if (isdigit(line[j])) {
 							historyNumber += line[j];
@@ -259,32 +267,39 @@ char* history_substitution(char* line) {
 						else {
 							offset = atoi(historyNumber.c_str());
 							i = j;
+							cout << "Got offset: " << offset << endl;
 							break;
 						}
 					}
 					// Append the end - offset value
 					changed = true;
 					newLine.append(history_get(history_length - offset)->line);
+					cout << "Appended newLine" << endl;
 				}
 			}
 			// Found a #
 			else if (isdigit(line[i + 1])) {
+				cout << "Found a number without a -" << endl;
 				string historyNumber;
 				historyNumber += line[i + 1];
 				// Prepare the final value, save the offset
-				for (int j = i + 1; j < sizeof(line); ++j) {
+				cout << "Getting offset" << endl;
+				for (int j = i + 2; j < sizeof(line); ++j) {
 					if (isdigit(line[j])) {
 						historyNumber += line[j];
+						cout << "History Number is now: " << historyNumber << endl;
 					}
 					else {
 						offset = atoi(historyNumber.c_str());
 						i = j;
+						cout << "Got Offset: " << offset << endl;
 						break;
 					}
 				}
 				// Append the offset value
 				changed = true;
 				newLine.append(history_get(offset)->line);
+				cout << "Appended newLine" << endl;
 			}
 		}
 		// No ! found, append the char as is
@@ -292,6 +307,7 @@ char* history_substitution(char* line) {
 			newLine += line[i];
 		}
 	}
+	cout << "Finishing up" << endl;
 	// Don't leak the previous line
 	free(line);
 	// Create a new space for the line
@@ -347,13 +363,12 @@ int main() {
         
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-			if (!(return_second_value == NOT_READY)) {
-				// Handle history substitutions
-				line = history_substitution(line);
-				
-				// Add this command to readline's history
-				add_history(line);
-			}
+			
+			// Handle history substitutions
+			line = history_substitution(line);
+			
+			// Add this command to readline's history
+			add_history(line);
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
