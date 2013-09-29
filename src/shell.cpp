@@ -235,6 +235,10 @@ char* history_substitution(char* char_line) {
 	// Loop to find all the !! commands and replace them
 	while (found != string::npos) {
 		found = string_line.find("!!");
+		if (found == string::npos) {
+			// No more !!'s, stop loop
+			break;
+		}
 		if (found != string::npos) {
 			string_line.replace(found, 2, last_command);
 			changed = true;
