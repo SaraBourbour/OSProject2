@@ -243,18 +243,15 @@ char* history_substitution(char* char_line) {
 	
 	found = 0;
 	while (found != string::npos) {
-		cout << "In the while loop" << endl;
 		found = string_line.find("!");
 		if (found == string::npos) {
 			// No more !'s, stop loop
 			break;
 		}
-		cout << "Found a single !" << endl;
 		string string_offset = "";
 		int offset;
 		bool negate = false;
 		// Generate offset, as a string
-		cout << "Generating offset" << endl;
 		for (int i = found + 1; i < string_line.length(); i++) {
 			if (string_line[i] == '-') {
 				negate = true;
@@ -270,15 +267,12 @@ char* history_substitution(char* char_line) {
 			continue;
 		}
 		offset = atoi(string_offset.c_str());
-		cout << "Complete. Offset: " << offset << endl;
-		cout << "Preparing for substitution" << endl;
 		if (negate) {
 			if (offset > history_length) {
 				cerr << "!-" << offset << ": event not found" << endl;
 				return NULL;
 			}
 			else {
-				cout << "Subbing negated offset" << endl;
 				const char* history_command = history_get(history_length - offset)-> line;
 				string_line.replace(found, sizeof(history_command), history_command);
 			}
@@ -289,12 +283,10 @@ char* history_substitution(char* char_line) {
 				return NULL;
 			}
 			else {
-				cout << "Subbing offset" << endl;
 				const char* history_command = history_get(offset)->line;
 				string_line.replace(found, sizeof(history_command), history_command);
 			}
 		}
-		cout << "Iteration complete" << endl;
 	}
 
 	// Don't leak the previous line
@@ -385,8 +377,6 @@ int main() {
 				return_value = BAD_SUBSTITUTION;
 				continue;
 			}
-			
-			cout << "Post Sub: " << line << endl;
             
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
