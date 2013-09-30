@@ -140,8 +140,6 @@ int com_history(vector<string>& tokens) {
 		return NORMAL_EXIT;
 	}
 	debug_cout("Passed no history check\n");
-	HIST_ENTRY *tempHistoryEntry = NULL;
-	debug_cout("Temp entry created\n");
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
@@ -149,44 +147,15 @@ int com_history(vector<string>& tokens) {
 	else if (tokens.size() == 2) {
 		debug_cout("Passed too many arguments check\n");
 		debug_cout("Two tokens found\n");
+		debug_cout("Ensuring argument is not negative");
+
 		// Show amount of history
-		if (atoi(tokens[1].c_str()) > history_length) {
-			perror("history");
-			return INVALID_ARGUMENTS;
-		}
-		debug_cout("Passed too large number check\n");
-		int show_amount = atoi(tokens[1].c_str());
-		debug_cout("Show amount calculated\n");
-		for (int i = 0; i < history_length - show_amount; i++) {
-			tempHistoryEntry = history_get(i);
-			stringstream debug;
-			debug << "Got a new history element at: " << i << "\n";
-			debug_cout(debug.str());
-			if (tempHistoryEntry == NULL) {
-				debug_cout("Element was null!\n");
-				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
-//				perror("Trying to parse a null history pointer, moving on:");
-				continue;
-			}
-			cout << "   " << i << "  " << history_get(i)->line << endl;
-		}
+		print_last_amount_history(atoi(tokens[1].c_str()));
 	}
 	else if (tokens.size() == 1) {
 		debug_cout("Passed too many arguments check\n");
 		debug_cout("Found only one token\n");
-		for (int i = 0; i < history_length; i++) {
-			tempHistoryEntry = history_get(i);
-			stringstream debug;
-			debug << "Got a new history element at: " << i << "\n";
-			debug_cout(debug.str());
-			if (tempHistoryEntry == NULL) {
-				debug_cout("Element was null!\n");
-				// Silenced error, this is okay. It's for compatibility for Linux vs BSD
-//				perror("Trying to parse a null history pointer, moving on:");
-				continue;
-			}
-			cout << "   " << i << "  " << history_get(i)->line << endl;
-		}
+		print_last_amount_history(history_length);
 	}
 	else {
 		debug_cout("WTF?! NEGATIVE ARRAY SIZE!?\n");
@@ -195,6 +164,28 @@ int com_history(vector<string>& tokens) {
 		return ABNORMAL_EXEC;
 	}
     return NORMAL_EXIT;
+}
+
+// Precondition: Expects a positive offset, for amount of elements to display
+void print_last_amount_history(int amount) {
+	// Cap amount of history to display
+	if (amount > history_length) {
+		amount = history_length;
+	}
+	HIST_ENTRY *tempHistoryEntry = NULL;
+	debug_cout("Temp entry created\n");
+	for (int i = history_length - amount; i < history_length; i++) {
+		tempHistoryEntry = history_get(i);
+		stringstream debug;
+		debug << "Got a new history element at: " << i << "\n";
+		debug_cout(debug.str());
+		if (tempHistoryEntry == NULL) {
+			debug_cout("Element was null!\n");
+			// Silenced error, this is okay. It's for compatibility for Linux vs BSD
+			//				perror("Trying to parse a null history pointer, moving on:");
+			continue;
+		}
+	}
 }
 
 string pwd() {

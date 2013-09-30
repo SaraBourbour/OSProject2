@@ -223,70 +223,96 @@ void local_variable_assignment(vector<string>& tokens) {
 }
 
 char* history_substitution(char* char_line) {
+	debug_cout("Beginning history substitution\n");
+	
 	if (history_length == 0) {
+		debug_cout("History has 0 length, stop substitution\n");
 		return char_line;
 	}
+	
+	debug_cout("Passed 0 length history check\n");
 	string string_line = char_line;
 	int offset = 0;
 	bool changed = false;
 	size_t found = 0;
-	
 	HIST_ENTRY* last_command_entity = history_get(history_length);
 	const char* last_command = NULL;
+	debug_cout("Fields initialized");
+	
 	if (last_command_entity != NULL) {
 		last_command = last_command_entity->line;
+		debug_cout("Entry not null, line initialized\n");
 	}
 	else {
+		debug_cout("Entry was null, line NOT initialized\n");
 		return NULL;
 	}
 	
 	// Loop to find all the !! commands and replace them
+	debug_cout("Starting first pass\n");
 	while (found != string::npos) {
 		found = string_line.find("!!");
 		if (found == string::npos) {
 			// No more !!'s, stop loop
+			debug_cout("No !! found, stopping first pass\n");
 			break;
 		}
 		if (found != string::npos) {
+			debug_cout("Found a !!, replacing it with last command\n");
 			string_line.replace(found, 2, last_command);
 			changed = true;
 		}
 	}
 	
+	debug_cout("First pass complete\n");
 	found = 0;
+	debug_cout("Starting second pass\n");
 	while (found != string::npos) {
 		found = string_line.find("!");
 		if (found == string::npos) {
 			// No more !'s, stop loop
+			debug_cout("No !# found, stopping second pass\n");
 			break;
 		}
+		debug_cout("Initializing pass fields\n");
 		string string_offset = "";
 		int offset;
 		bool negate = false;
 		// Generate offset, as a string
+		debug_cout("Generating offset\n");
 		for (int i = found + 1; i < string_line.length(); i++) {
 			if (string_line[i] == '-') {
+				debug_cout("Found '-', negating the offset\n");
 				negate = true;
 				continue;
 			}
 			if (!isdigit(string_line[i])) {
+				debug_cout("Found end of number\n");
 				break;
 			}
 			string_offset += string_line[i];
+			debug_cout("Updated string offset: " + string_offset);
 		}
 		// If no offset was generated
 		if (string_offset == "") {
-			continue;
+			debug_cout("No offset found, leave the ! alone, stop substitution");
+			break;
 		}
+		
 		offset = atoi(string_offset.c_str());
+		stringstream debug;
+		debug << "Offset generated: " << offset << "\n";
+		debug_cout(debug.str());
+		
 		if (negate) {
 			if (offset > history_length) {
 				cerr << "!-" << offset << ": event not found" << endl;
 				return NULL;
 			}
 			else {
-				const char* history_command = history_get(history_length - offset)-> line;
+				const char* history_command = history_get(history_length - offset)->line;
 				string_line.replace(found, sizeof(history_command), history_command);
+				debug_cout("Substituted line element\n");
 			}
 		}
 		else {
@@ -297,10 +323,11 @@ char* history_substitution(char* char_line) {
 			else {
 				const char* history_command = history_get(offset)->line;
 				string_line.replace(found, sizeof(history_command), history_command);
+				debug_cout("Substituted line element\n");
 			}
 		}
 	}
-
+	debug_cout("Second pass complete\n");
 	// Don't leak the previous line
 	free(char_line);
 	// Create a new space for the line
@@ -308,6 +335,10 @@ char* history_substitution(char* char_line) {
 	// Copy over contents of newLine
 	memcpy(char_line, string_line.c_str(), string_line.size());
 	// If the line was changed print it out, like BASH
+	stringstream debug;
+	debug << "New char_line generated: " << char_line << "\n";
+	debug_cout(debug.str());
+	
 	if (changed) {
 		cout << char_line << endl;
 	}
@@ -382,7 +413,7 @@ int main() {
         if (line[0]) {
 			debug_cout("Command not empty\n");
 			// Handle history substitutions
-			//line = history_substitution(line);
+			line = history_substitution(line);
 			stringstream debug;
 			debug <<"Subs completed, line: " << line << endl;
 			debug_cout(debug.str());

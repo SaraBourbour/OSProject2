@@ -26,7 +26,7 @@
 #define SIGNAL_EXIT_SHELL   int(-1024)
 
 // Low level debugging switch
-#define LOW_LEVEL_DEBUG		false
+#define LOW_LEVEL_DEBUG		true
 
 using std::vector;
 using std::string;
@@ -80,4 +80,6 @@ string user();
 string last_command_status(int code);
 
 void debug_cout(string output);
+
+void print_last_amount_history(int amount);
 
