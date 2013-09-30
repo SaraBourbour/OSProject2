@@ -147,14 +147,14 @@ int com_history(vector<string>& tokens) {
 	else if (tokens.size() == 2) {
 		debug_cout("Passed too many arguments check\n");
 		debug_cout("Two tokens found\n");
-		debug_cout("Ensuring argument is not negative");
+		debug_cout("Ensuring argument is not negative\n");
 		if (tokens[1][0] == '-') {
-			cerr << "history: cannot have a negative argument" << endl;
+			cerr << "history: cannot have a negative argument\n";
 			return INVALID_ARGUMENTS;
 		}
 
 		// Show amount of history
-		print_last_amount_history(atoi(tokens[1].c_str()) + 1);
+		print_last_amount_history(atoi(tokens[1].c_str()));
 	}
 	else if (tokens.size() == 1) {
 		debug_cout("Passed too many arguments check\n");
@@ -178,7 +178,7 @@ void print_last_amount_history(int amount) {
 	}
 	HIST_ENTRY *tempHistoryEntry = NULL;
 	debug_cout("Temp entry created\n");
-	for (int i = history_length - amount; i < history_length; i++) {
+	for (int i = history_length - amount; i <= history_length; i++) {
 		tempHistoryEntry = history_get(i);
 		stringstream debug;
 		debug << "Got a new history element at: " << i << "\n";
