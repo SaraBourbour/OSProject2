@@ -291,7 +291,7 @@ char* history_substitution(char* char_line) {
 				break;
 			}
 			string_offset += string_line[i];
-			debug_cout("Updated string offset: " + string_offset);
+			debug_cout("Updated string offset: " + string_offset + "\n");
 		}
 		// If no offset was generated
 		if (string_offset == "") {
@@ -310,7 +310,12 @@ char* history_substitution(char* char_line) {
 				return NULL;
 			}
 			else {
-				const char* history_command = history_get(history_length - offset)->line;
+				HIST_ENTRY *temp_entry = history_get(history_length - offset);
+				if (temp_entry == NULL) {
+					cerr << "!-" << offset << ": event not found" << endl;
+					return NULL;
+				}
+				const char* history_command = temp_entry->line;
 				string_line.replace(found, sizeof(history_command), history_command);
 				debug_cout("Substituted line element\n");
 			}
@@ -321,7 +326,12 @@ char* history_substitution(char* char_line) {
 				return NULL;
 			}
 			else {
-				const char* history_command = history_get(offset)->line;
+				HIST_ENTRY *temp_entry = history_get(offset);
+				if (temp_entry == NULL) {
+					cerr << "!" << offset << ": event not found" << endl;
+					return NULL;
+				}
+				const char* history_command = temp_entry->line;
 				string_line.replace(found, sizeof(history_command), history_command);
 				debug_cout("Substituted line element\n");
 			}
