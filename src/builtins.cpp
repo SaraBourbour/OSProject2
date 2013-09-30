@@ -148,9 +148,13 @@ int com_history(vector<string>& tokens) {
 		debug_cout("Passed too many arguments check\n");
 		debug_cout("Two tokens found\n");
 		debug_cout("Ensuring argument is not negative");
+		if (tokens[1][0] == '-') {
+			cerr << "history: cannot have a negative argument" << endl;
+			return INVALID_ARGUMENTS;
+		}
 
 		// Show amount of history
-		print_last_amount_history(atoi(tokens[1].c_str()));
+		print_last_amount_history(atoi(tokens[1].c_str()) + 1);
 	}
 	else if (tokens.size() == 1) {
 		debug_cout("Passed too many arguments check\n");
@@ -189,6 +193,7 @@ void print_last_amount_history(int amount) {
 			cout << "   " << i << "  " << tempHistoryEntry->line;
 		}
 	}
+	cout << endl;
 }
 
 string pwd() {
