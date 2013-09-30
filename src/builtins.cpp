@@ -185,6 +185,9 @@ void print_last_amount_history(int amount) {
 			//				perror("Trying to parse a null history pointer, moving on:");
 			continue;
 		}
+		else {
+			cout << "   " << i << "  " << tempHistoryEntry->line;
+		}
 	}
 }
 
