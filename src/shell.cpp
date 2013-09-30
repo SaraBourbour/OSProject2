@@ -237,7 +237,7 @@ char* history_substitution(char* char_line) {
 	size_t found = 0;
 	HIST_ENTRY* last_command_entity = history_get(history_length);
 	const char* last_command = NULL;
-	debug_cout("Fields initialized");
+	debug_cout("Fields initialized\n");
 	
 	if (last_command_entity != NULL) {
 		last_command = last_command_entity->line;
@@ -307,12 +307,14 @@ char* history_substitution(char* char_line) {
 		if (negate) {
 			if (offset > history_length) {
 				cerr << "!-" << offset << ": event not found" << endl;
+				debug_cout("Second pass complete\n");
 				return NULL;
 			}
 			else {
 				HIST_ENTRY *temp_entry = history_get(history_length - offset);
 				if (temp_entry == NULL) {
 					cerr << "!-" << offset << ": event not found" << endl;
+					debug_cout("Second pass complete\n");
 					return NULL;
 				}
 				const char* history_command = temp_entry->line;
@@ -323,12 +325,14 @@ char* history_substitution(char* char_line) {
 		else {
 			if (offset > history_length) {
 				cerr << "!" << offset << ": event not found" << endl;
+				debug_cout("Second pass complete\n");
 				return NULL;
 			}
 			else {
 				HIST_ENTRY *temp_entry = history_get(offset);
 				if (temp_entry == NULL) {
 					cerr << "!" << offset << ": event not found" << endl;
+					debug_cout("Second pass complete\n");
 					return NULL;
 				}
 				const char* history_command = temp_entry->line;

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		1F5652B817F8FF8300321FB6 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README; path = ../README; sourceTree = "<group>"; };
 		1F6F97C817F78E01006E50A4 /* builtins.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = builtins.cpp; sourceTree = "<group>"; };
 		1F6F97C917F78E01006E50A4 /* builtins.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = builtins.h; sourceTree = "<group>"; };
 		1F6F97CA17F78E01006E50A4 /* makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = makefile; sourceTree = "<group>"; };
@@ -27,6 +28,7 @@
 			children = (
 				1F6F97C817F78E01006E50A4 /* builtins.cpp */,
 				1F6F97C917F78E01006E50A4 /* builtins.h */,
+				1F5652B817F8FF8300321FB6 /* README */,
 				1F6F97CA17F78E01006E50A4 /* makefile */,
 				1F6F97CB17F78E01006E50A4 /* MyShell */,
 				1F6F97CC17F78E01006E50A4 /* shell.cpp */,
@@ -186,6 +188,7 @@
 				1F6F97C617F78D9C006E50A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
