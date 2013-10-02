@@ -196,6 +196,10 @@ void variable_substitution(vector<string>& tokens) {
                 *token = "";
             }
         }
+		// Replace ~ with home
+		else if (token->at(0) == '~') {
+			*token = getenv("HOME");
+		}
 	}
 }
 
@@ -244,8 +248,14 @@ char* history_substitution(char* char_line) {
 		debug_cout("Entry not null, line initialized\n");
 	}
 	else {
-		debug_cout("Entry was null, line NOT initialized\n");
-		return NULL;
+		debug_cout("Entry was null, trying to recover\n");
+		if (history_length > 1) {
+			debug_cout("Found that history is greater than size\n");
+		}
+		else {
+			debug_cout("UNABLE TO RECOVER, LINE NOT INITIALIZED\n");
+			return NULL;
+		}
 	}
 	
 	// Loop to find all the !! commands and replace them
@@ -442,17 +452,17 @@ int main() {
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
 			debug_cout("Input tokenized\n");
-			if (tokens[0] != "history") {
-				debug_cout("Adding to history\n");
-				// Add this command to readline's history
-				add_history(line);
-				debug_cout("Added to history\n");
-				// Update history file
-				if (write_history(NULL) != NORMAL_EXIT) {
-					perror("Could not save history file!");
-				}
-				debug_cout("Wrote history, passed return value check\n");
+
+			debug_cout("Adding to history\n");
+			// Add this command to readline's history
+			add_history(line);
+			debug_cout("Updating the history file\n");
+			// Update history file
+			if (write_history(NULL) != NORMAL_EXIT) {
+				perror("Could not save history file!");
 			}
+			debug_cout("Wrote history, passed return value check\n");
+
         
             // Handle local variable declarations
             local_variable_assignment(tokens);

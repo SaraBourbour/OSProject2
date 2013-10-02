@@ -26,7 +26,7 @@
 #define SIGNAL_EXIT_SHELL   int(-1024)
 
 // Low level debugging switch
-#define LOW_LEVEL_DEBUG		false
+#define LOW_LEVEL_DEBUG		true
 
 using std::vector;
 using std::string;
