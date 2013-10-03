@@ -64,20 +64,24 @@ Extra Features
 1. Invoking `cd' without arguments will take the user to
 	the path specified by $HOME.
 	
-2. I spent a LOT of time testing this project, therefore
+2. `cd -' Will take the user to the previous directory.
+	
+3. I spent a LOT of time testing this project, therefore
 	there is a switch in builtins.h to turn on a very
 	verbose set of debug statements. Use it if you're
 	curious.
 	
-3. I tested compatibility of this shell on both BSD based
+4. I tested compatibility of this shell on both BSD based
 	Unix, and Ubuntu Linux distributions, and works on
 	both systems.
 	
-4. This shell uses a multiline prompt, that way the pwd
+5. This shell uses a multiline prompt, that way the pwd
 	can get massive and not be a problem.
 	
-5. The end of the prompt "lc: #" specifies the return code
+6. The end of the prompt "lc: #" specifies the return code
 	of the last command ran.
+	
+	
 
 -------------------------------------------------
 Misc

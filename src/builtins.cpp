@@ -204,10 +204,9 @@ void print_last_amount_history(int amount) {
 			continue;
 		}
 		else {
-			cout << "   " << i << "  " << tempHistoryEntry->line;
+			cout << "   " << i << "  " << tempHistoryEntry->line << endl;
 		}
 	}
-	cout << endl;
 }
 
 string pwd() {
