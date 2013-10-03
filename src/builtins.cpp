@@ -3,6 +3,7 @@
 
 using namespace std;
 
+stack<string> *directory_stack = new stack<string>();
 
 int com_ls(vector<string>& tokens) {
     
@@ -45,6 +46,8 @@ int com_cd(vector<string>& tokens) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
 			debug_cout("Changing to: " + tokens[1] + "\n");
+			debug_cout("Pushing pwd onto the directory stack");
+			directory_stack->push(pwd());
             int ret_val = chdir(tokens[1].c_str());
 			stringstream debug;
 			debug << "Return value of chdir: " << ret_val << "\n";
@@ -54,6 +57,15 @@ int com_cd(vector<string>& tokens) {
 			}
             return ret_val;
         }
+		else if (tokens[1][0] == '-') {
+			debug_cout("Changing to previous directory\n");
+			int ret_val = chdir(directory_stack->top().c_str());
+			directory_stack->pop();
+			if (ret_val != NORMAL_EXIT) {
+				perror("cd");
+			}
+			return ret_val;
+		}
         else {
             string cwd = getcwd(NULL, 0);
             // Add a slash
@@ -72,6 +84,8 @@ int com_cd(vector<string>& tokens) {
         }
     }
 	else if (tokens.size() == 1) {
+		debug_cout("Pushing pwd onto the directory stack\n");
+		directory_stack->push(pwd());
 		chdir(getenv("HOME"));
 		return NORMAL_EXIT;
 	}
@@ -181,7 +195,7 @@ void print_last_amount_history(int amount) {
 	for (int i = history_length - amount; i <= history_length; i++) {
 		tempHistoryEntry = history_get(i);
 		stringstream debug;
-		debug << "Got a new history element at: " << i << "\n";
+		debug << "\nGot a new history element at: " << i << "\n";
 		debug_cout(debug.str());
 		if (tempHistoryEntry == NULL) {
 			debug_cout("Element was null!\n");

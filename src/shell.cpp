@@ -226,148 +226,31 @@ void local_variable_assignment(vector<string>& tokens) {
     }
 }
 
-char* history_substitution(char* char_line) {
-	debug_cout("Beginning history substitution\n");
+string history_substitution(string token) {
 	
-	if (history_length == 0) {
-		debug_cout("History has 0 length, stop substitution\n");
-		return char_line;
-	}
-	
-	debug_cout("Passed 0 length history check\n");
-	string string_line = char_line;
-	int offset = 0;
-	bool changed = false;
-	size_t found = 0;
-	HIST_ENTRY* last_command_entity = history_get(history_length);
-	const char* last_command = NULL;
-	debug_cout("Fields initialized\n");
-	
-	if (last_command_entity != NULL) {
-		last_command = last_command_entity->line;
-		debug_cout("Entry not null, line initialized\n");
-	}
-	else {
-		debug_cout("Entry was null, trying to recover\n");
-		if (history_length > 1) {
-			debug_cout("Found that history is greater than size\n");
-		}
-		else {
-			debug_cout("UNABLE TO RECOVER, LINE NOT INITIALIZED\n");
-			return NULL;
-		}
-	}
-	
-	// Loop to find all the !! commands and replace them
-	debug_cout("Starting first pass\n");
-	while (found != string::npos) {
-		found = string_line.find("!!");
-		if (found == string::npos) {
-			// No more !!'s, stop loop
-			debug_cout("No !! found, stopping first pass\n");
-			break;
-		}
-		if (found != string::npos) {
-			debug_cout("Found a !!, replacing it with last command\n");
-			string_line.replace(found, 2, last_command);
-			changed = true;
-		}
-	}
-	
-	debug_cout("First pass complete\n");
-	found = 0;
-	debug_cout("Starting second pass\n");
-	while (found != string::npos) {
-		found = string_line.find("!");
-		if (found == string::npos) {
-			// No more !'s, stop loop
-			debug_cout("No !# found, stopping second pass\n");
-			break;
-		}
-		debug_cout("Initializing pass fields\n");
-		string string_offset = "";
-		int offset;
-		bool negate = false;
-		// Generate offset, as a string
-		debug_cout("Generating offset\n");
-		for (int i = found + 1; i < string_line.length(); i++) {
-			if (string_line[i] == '-') {
-				debug_cout("Found '-', negating the offset\n");
-				negate = true;
-				continue;
-			}
-			if (!isdigit(string_line[i])) {
-				debug_cout("Found end of number\n");
-				break;
-			}
-			string_offset += string_line[i];
-			debug_cout("Updated string offset: " + string_offset + "\n");
-		}
-		// If no offset was generated
-		if (string_offset == "") {
-			debug_cout("No offset found, leave the ! alone, stop substitution");
-			break;
-		}
-		
-		offset = atoi(string_offset.c_str());
-		stringstream debug;
-		debug << "Offset generated: " << offset << "\n";
-		debug_cout(debug.str());
-		
-		if (negate) {
-			if (offset > history_length) {
-				cerr << "!-" << offset << ": event not found" << endl;
-				debug_cout("Second pass complete\n");
-				return NULL;
-			}
-			else {
-				HIST_ENTRY *temp_entry = history_get(history_length - offset);
-				if (temp_entry == NULL) {
-					cerr << "!-" << offset << ": event not found" << endl;
-					debug_cout("Second pass complete\n");
-					return NULL;
-				}
-				const char* history_command = temp_entry->line;
-				string_line.replace(found, sizeof(history_command), history_command);
-				debug_cout("Substituted line element\n");
-			}
-		}
-		else {
-			if (offset > history_length) {
-				cerr << "!" << offset << ": event not found" << endl;
-				debug_cout("Second pass complete\n");
-				return NULL;
-			}
-			else {
-				HIST_ENTRY *temp_entry = history_get(offset);
-				if (temp_entry == NULL) {
-					cerr << "!" << offset << ": event not found" << endl;
-					debug_cout("Second pass complete\n");
-					return NULL;
-				}
-				const char* history_command = temp_entry->line;
-				string_line.replace(found, sizeof(history_command), history_command);
-				debug_cout("Substituted line element\n");
-			}
-		}
-	}
-	debug_cout("Second pass complete\n");
-	// Don't leak the previous line
-	free(char_line);
-	// Create a new space for the line
-	char_line = new char[string_line.size()];
-	// Copy over contents of newLine
-	memcpy(char_line, string_line.c_str(), string_line.size());
-	// If the line was changed print it out, like BASH
 	stringstream debug;
-	debug << "New char_line generated: " << char_line << "\n";
+	debug << "Beginning history substitution for token: " << token << endl;
 	debug_cout(debug.str());
 	
-	if (changed) {
-		cout << char_line << endl;
+	char** new_tokens = new char*[1];
+	
+	int ret_val = history_expand((char*)token.c_str(), new_tokens);
+	stringstream debug_ret_val;
+	debug_ret_val << "Expansion complete. Return code: " << ret_val << endl;
+	debug_cout(debug_ret_val.str());
+	
+	if (ret_val != NORMAL_EXIT_EXPANSION) {
+		
+		stringstream debug_abnormal_exit;
+		debug_abnormal_exit << "Token: " << token << " not substituted\n";
+		debug_cout(debug_abnormal_exit.str());
+		return token;
 	}
-	// Return the new line
-	return char_line;
+	
+	stringstream returnString;
+	returnString << new_tokens[0];
+	
+	return returnString.str();
 }
 
 void initializeShell() {
@@ -436,11 +319,6 @@ int main() {
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
 			debug_cout("Command not empty\n");
-			// Handle history substitutions
-			line = history_substitution(line);
-			stringstream debug;
-			debug <<"Subs completed, line: " << line << endl;
-			debug_cout(debug.str());
 			// If null, there was a substitution error
 			if (!line) {
 				debug_cout("SUB ERROR!!\n");
@@ -453,6 +331,20 @@ int main() {
             vector<string> tokens = tokenize(line);
 			debug_cout("Input tokenized\n");
 
+			debug_cout("Substituting each token\n");
+			
+			int ret_val;
+			
+			for (int i = 0; i < tokens.size(); i++) {
+				string return_string = history_substitution(tokens[i]);
+				tokens[i] = return_string.c_str();
+				stringstream debug;
+				debug << "Substitution complete on token: " << tokens[i] << " got: " << return_string << endl;
+				debug_cout(debug.str());
+			}
+			
+			debug_cout("Substitution complete\n");
+			
 			debug_cout("Adding to history\n");
 			// Add this command to readline's history
 			add_history(line);
