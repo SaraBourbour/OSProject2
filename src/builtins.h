@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <stack>
+#include <map>
 
 // Readline lib
 #include <readline/readline.h>

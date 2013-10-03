@@ -5,6 +5,8 @@ using namespace std;
 
 stack<string> *directory_stack = new stack<string>();
 
+map<string, string> *alias_map = new map<string, string>();
+
 int com_ls(vector<string>& tokens) {
     
     // if no directory is given, use the local directory
@@ -104,9 +106,17 @@ int com_pwd(vector<string>& tokens) {
 
 
 int com_alias(vector<string>& tokens) {
-    // TODO: YOUR CODE GOES HERE
-    cout << "alias called" << endl; // delete when implemented
-    return 1;
+	
+	debug_cout("Adding an alias");
+	stringstream alias_line;
+	for (int i = 3; i < tokens.size(); i++) {
+		alias_line << tokens[i];
+	}
+	debug_cout("Putting " + tokens[1] + " onto alias map");
+
+	alias_map->insert(tokens[1], alias_line.str());
+
+	return NORMAL_EXIT;
 }
 
 
@@ -114,6 +124,16 @@ int com_unalias(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
     cout << "unalias called" << endl; // delete when implemented
     return NORMAL_EXIT;
+}
+
+int substitute_aliases(vector<string>& tokens) {
+	for (int i = 0; i < tokens.size(); i++) {
+		for (map<string,string>::iterator it=alias_map->begin(); it!=alias_map->end(); ++it) {
+			if (tokens[i] == *it) {
+				*tokens[i] = *it;
+			}
+		}
+	}
 }
 
 
