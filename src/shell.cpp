@@ -347,7 +347,11 @@ int main() {
 			
 			debug_cout("Adding to history\n");
 			// Add this command to readline's history
-			add_history(line);
+			stringstream history_string;
+			for (int i = 0; i < tokens.size(); i++) {
+				history_string << tokens[i];
+			}
+			add_history(history_string.str().c_str());
 			debug_cout("Updating the history file\n");
 			// Update history file
 			if (write_history(NULL) != NORMAL_EXIT) {
