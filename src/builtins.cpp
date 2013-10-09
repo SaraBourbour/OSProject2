@@ -35,30 +35,28 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-	if (LOW_LEVEL_DEBUG) {
-		debug_cout("All tokens in cd: ");
+	if (DEBUGGING_ENABLED) {
+		d_cout("All tokens in cd: ");
 		for (int i=0; i<tokens.size(); i++) {
-			debug_cout(tokens[i] + " ");
+			d_cout("", tokens[i].c_str(), " ");
 		}
-		debug_cout("\n");
+		d_cout("\n");
 	}
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
-			debug_cout("Changing to: " + tokens[1] + "\n");
-			debug_cout("Pushing pwd onto the directory stack");
+			d_cout("Changing to: ", tokens[1].c_str(), "\n");
+			d_cout("Pushing pwd onto the directory stack");
 			directory_stack->push(pwd());
             int ret_val = chdir(tokens[1].c_str());
-			stringstream debug;
-			debug << "Return value of chdir: " << ret_val << "\n";
-			debug_cout(debug.str());
+			d_cout("Return value of chdir: ", ret_val, "\n");
 			if (ret_val != NORMAL_EXIT) {
 				perror("cd");
 			}
             return ret_val;
         }
 		else if (tokens[1][0] == '-') {
-			debug_cout("Changing to previous directory\n");
+			d_cout("Changing to previous directory\n");
 			int ret_val = chdir(directory_stack->top().c_str());
 			directory_stack->pop();
 			if (ret_val != NORMAL_EXIT) {
@@ -84,7 +82,7 @@ int com_cd(vector<string>& tokens) {
         }
     }
 	else if (tokens.size() == 1) {
-		debug_cout("Pushing pwd onto the directory stack\n");
+		d_cout("Pushing pwd onto the directory stack\n");
 		directory_stack->push(pwd());
 		chdir(getenv("HOME"));
 		return NORMAL_EXIT;
@@ -149,19 +147,17 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
-	debug_cout("In history\n");
+	d_cout("In history\n");
 	if (history_length == 0) {
 		return NORMAL_EXIT;
 	}
-	debug_cout("Passed no history check\n");
+	d_cout("Passed no history check\n");
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
-		debug_cout("Passed too many arguments check\n");
-		debug_cout("Two tokens found\n");
-		debug_cout("Ensuring argument is not negative\n");
+		d_cout("Passed too many arguments check\n", "Two tokens found\n", "Ensuring argument is not negative\n");
 		if (tokens[1][0] == '-') {
 			cerr << "history: cannot have a negative argument\n";
 			return INVALID_ARGUMENTS;
@@ -171,12 +167,11 @@ int com_history(vector<string>& tokens) {
 		print_last_amount_history(atoi(tokens[1].c_str()));
 	}
 	else if (tokens.size() == 1) {
-		debug_cout("Passed too many arguments check\n");
-		debug_cout("Found only one token\n");
+		d_cout("Passed too many arguments check\n", "Found only one token\n");
 		print_last_amount_history(history_length);
 	}
 	else {
-		debug_cout("WTF?! NEGATIVE ARRAY SIZE!?\n");
+		d_cout("WTF?! NEGATIVE ARRAY SIZE!?\n");
 		// This should never happen, implies negative size
 		perror("history");
 		return ABNORMAL_EXEC;
@@ -191,14 +186,12 @@ void print_last_amount_history(int amount) {
 		amount = history_length;
 	}
 	HIST_ENTRY *tempHistoryEntry = NULL;
-	debug_cout("Temp entry created\n");
+	d_cout("Temp entry created\n");
 	for (int i = history_length - amount; i <= history_length; i++) {
 		tempHistoryEntry = history_get(i);
-		stringstream debug;
-		debug << "\nGot a new history element at: " << i << "\n";
-		debug_cout(debug.str());
+		d_cout("\nGot a new history element at: ", i, "\n");
 		if (tempHistoryEntry == NULL) {
-			debug_cout("Element was null!\n");
+			d_cout("Element was null!\n");
 			// Silenced error, this is okay. It's for compatibility for Linux vs BSD
 			//				perror("Trying to parse a null history pointer, moving on:");
 			continue;
@@ -223,8 +216,12 @@ string last_command_status(int code) {
 	return ss.str();
 }
 
-void debug_cout(string output) {
-	if (LOW_LEVEL_DEBUG) {
-		cout << output;
+void debug_cout(const char *arg, ... ) {
+	if (DEBUGGING_ENABLED) {
+		va_list arguments;
+		for (va_start(arguments, arg); arg != NULL; arg = va_arg(arguments, const char *)) {
+			cout << arg;
+		}
+		va_end(arguments);
 	}
 }

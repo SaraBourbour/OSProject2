@@ -49,8 +49,80 @@ bool std_out_append_redirect = false;
 
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
-    // TODO: YOUR CODE GOES HERE
-    return CMD_NOT_FOUND;
+	int child_PID = -1;
+	int child_return_code = -1;
+	// Fork off a new process
+	d_cout("Forking a child process\n");
+	child_PID = fork();
+	// If this process is the child
+	if (child_PID == 0) {
+		d_cout("Inside the child process\n");
+		// Generate the command char *const command[], with NULL on the end
+		char *command[tokens.size() + 1];
+		d_cout("Generating command array\n");
+		for (int i = 0; i < tokens.size(); i++) {
+			// Create an array to hold the string
+			char tmp_c_string[tokens[i].size() + 1];
+			// Copy the string over, using sketchy string copy
+			size_t length_of_temp = tokens[i].copy(tmp_c_string, tokens[i].size(), 0);
+			// Null terminate the string
+			tmp_c_string[length_of_temp]='\0';
+			// Set the string to the args array index
+			command[i] = tmp_c_string;
+			d_cout("Setting next command index to ", command[i], "\n");
+		}
+		// Don't forget the null
+		command[tokens.size() + 1] = NULL;
+		
+		// Try execution with each path in $PATH
+		d_cout("Preparing to path match the command\n");
+		string path = getenv("PATH");
+		string path_delimiter = ":";
+		size_t current_position = 0;
+		string path_component;
+		bool executed = false;
+		string file_to_execute;
+		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
+			path_component = path.substr(0, current_position);
+			d_cout("Path component: ", path_component.c_str());
+			// Append the path component to the command
+			file_to_execute = path_component + command[0];
+			d_cout("Trying command ", file_to_execute.c_str(), "\n");
+			// Attempt to execute it
+			int ret_val = execve(file_to_execute.c_str(), command, environ);
+			// If the execution was good
+			if (ret_val != EXEC_FAIL) {
+				// Mark executed so we stop
+				executed = true;
+				// Return normal exit code
+				return NORMAL_EXIT;
+			}
+			// Chop that part of the path string off
+			path.erase(0, current_position + path_delimiter.length());
+		}
+		// Try execution with PWD for the command if PATH didn't find it
+		if (!executed) {
+			file_to_execute = pwd() + command[0];
+			int ret_val = execve(file_to_execute.c_str(), command, environ);
+			if (ret_val != EXEC_FAIL) {
+				executed = true;
+				return NORMAL_EXIT;
+			}
+		}
+		
+		// If we still haven't executed, return command not found
+		return CMD_NOT_FOUND;
+	}
+	// Else this is the parent
+	else {
+		d_cout("In parent process\n");
+		// Wait for the child to exit
+		wait(&child_return_code);
+		d_cout("Child exited, resuming parent control\n");
+	}
+	
+	// Check return codes for the external command
+    return NORMAL_EXIT;
 }
 
 
@@ -149,9 +221,9 @@ vector<string> tokenize(const char* line) {
     
     // istringstream allows us to treat the string like a stream
     istringstream token_stream(line);
-    debug_cout("Tokenizing line\n");
+    d_cout("Tokenizing line\n");
     while (token_stream >> token) {
-		debug_cout("Pushing back " + token + "\n");
+		d_cout("Pushing back ", token.c_str(), "\n");
         tokens.push_back(token);
     }
     
@@ -165,7 +237,7 @@ vector<string> tokenize(const char* line) {
         }
     }
     
-	debug_cout("Tokenizing complete\n");
+	d_cout("Tokenizing complete\n");
     return tokens;
 }
 
@@ -179,6 +251,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
         
         if (cmd == builtins.end()) {
+			d_cout("Could not find an internal command, trying external\n");
             return execute_external_command(tokens);
         } else {
             return ((*cmd->second)(tokens));
@@ -237,23 +310,13 @@ void local_variable_assignment(vector<string>& tokens) {
 }
 
 string history_substitution(string token) {
-	
-	stringstream debug;
-	debug << "Beginning history substitution for token: " << token << endl;
-	debug_cout(debug.str());
-	
+	d_cout("Beginning history substitution for token: ", token.c_str(), "\n");
 	char** new_tokens = new char*[1];
-	
 	int ret_val = history_expand((char*)token.c_str(), new_tokens);
-	stringstream debug_ret_val;
-	debug_ret_val << "Expansion complete. Return code: " << ret_val << endl;
-	debug_cout(debug_ret_val.str());
+	d_cout("Expansion complete. Return code: ", ret_val, "\n");
 	
 	if (ret_val != NORMAL_EXIT_EXPANSION) {
-		
-		stringstream debug_abnormal_exit;
-		debug_abnormal_exit << "Token: " << token << " not substituted\n";
-		debug_cout(debug_abnormal_exit.str());
+		d_cout("Token: ", token.c_str(), " not substituted\n");
 		return token;
 	}
 	
@@ -298,15 +361,41 @@ void initializeShell() {
 	cout << "\nHsh initialization complete!\n\n";
 }
 
-void check_for_redirects(vector<string> tokens){
+int check_for_redirects(vector<string> tokens){
+	d_cout("Checking for redirects in line\n");
 	for (size_t i = 0; i < tokens.size(); i++) {
-		for (size_t j = 0; j < sizeof(redirect_operators) / sizeof(redirect_operators[0]); j++) {
-			if (tokens[i] == redirect_operators[j]) {
-				debug_cout("Found a redirect operator: " + tokens[i] + "\n");
-				
+		d_cout("Found a redirect operator: ", tokens[i].c_str(), "\n");
+		if (tokens[i] == "<") {
+			if (std_in_redirect) {
+				cerr << "Only one redirection is allowed per command\n";
+				return MULTIPLE_REDIRECTIONS;
 			}
+			std_in_redirect = true;
+		}
+		else if (tokens[i] == ">") {
+			if (std_out_redirect) {
+				cerr << "Only one redirection is allowed per command\n";
+				return MULTIPLE_REDIRECTIONS;
+			}
+			std_out_redirect = true;
+		}
+		else if (tokens[i] == ">>") {
+			if (std_out_append_redirect) {
+				cerr << "Only one redirection is allowed per command\n";
+				return MULTIPLE_REDIRECTIONS;
+			}
+			std_out_append_redirect = true;
 		}
 	}
+	// If any two flags are set, then return an error
+	if ((std_in_redirect && (std_out_redirect || std_out_append_redirect))
+		|| (std_out_redirect && (std_in_redirect || std_out_append_redirect))
+		|| (std_out_append_redirect && (std_in_redirect || std_out_redirect))) {
+		cerr << "Only one redirection is allowed per command\n";
+		return MULTIPLE_REDIRECTIONS;
+	}
+	d_cout("Redirect check completed without errors\n");
+	return NORMAL_EXIT;
 }
 
 int process_redirect(vector<string>tokens, int redirect_destination) {
@@ -326,7 +415,7 @@ int main() {
 	int return_second_value = NOT_READY;
     
     // Loop for multiple successive commands
-	debug_cout("Command loop start\n");
+	d_cout("Command loop start\n");
     while (true) {
         
 		// Reset the redirection flags
@@ -339,67 +428,59 @@ int main() {
         
         // Read a line of input from the user
         char* line = readline(prompt.c_str());
-        debug_cout("Line read\n");
+        d_cout("Line read\n");
         // If the pointer is null, then an EOF has been received (ctrl-d)
         if (!line) {
             break;
         }
-		debug_cout("Passed null line check\n");
+		d_cout("Passed null line check\n");
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-			debug_cout("Command not empty\n");
+			d_cout("Command not empty\n");
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
-			debug_cout("Input tokenized\n");
+			d_cout("Input tokenized\n");
 
-			debug_cout("Substituting each token\n");
+			d_cout("Substituting each token\n");
 			
 			int ret_val;
 			
 			for (int i = 0; i < tokens.size(); i++) {
 				string return_string = history_substitution(tokens[i]);
 				tokens[i] = return_string.c_str();
-				stringstream debug;
-				debug << "Substitution complete on token: " << tokens[i] << " got: " << return_string << endl;
-				debug_cout(debug.str());
+				d_cout("Substitution complete on token: ", tokens[i].c_str(), " got: ", return_string.c_str(), "\n");
 			}
 			
-			debug_cout("Substitution complete\n");
+			d_cout("Substitution complete\n");
 			
-			if (std_in_redirect) {
-				debug_cout("Processing standard in redirect\n");
-				process_redirect(tokens, REDIRECT_IN);
-			}
-			
-			
-			debug_cout("Adding to history\n");
+			d_cout("Adding to history\n");
 			// Add this command to readline's history
 			stringstream history_string;
 			for (int i = 0; i < tokens.size(); i++) {
 				history_string << tokens[i];
 			}
 			add_history(history_string.str().c_str());
-			debug_cout("Updating the history file\n");
+			d_cout("Updating the history file\n");
 			// Update history file
 			if (write_history(NULL) != NORMAL_EXIT) {
 				perror("Could not save history file!");
 			}
-			debug_cout("Wrote history, passed return value check\n");
+			d_cout("Wrote history, passed return value check\n");
 
         
             // Handle local variable declarations
             local_variable_assignment(tokens);
-            debug_cout("Local variables assigned\n");
+            d_cout("Local variables assigned\n");
             // Substitute variable references
             variable_substitution(tokens);
-            debug_cout("Variables substituted\n");
+            d_cout("Variables substituted\n");
 			return_second_value = return_value;
-			debug_cout("Updated second return value\n");
-			debug_cout("----------------------EXECUTION OUTPUT----------------------\n");
+			d_cout("Updated second return value\n");
+			d_cout("----------------------EXECUTION OUTPUT----------------------\n");
             // Execute the line
             return_value = execute_line(tokens, builtins);
-			debug_cout("-------------------END EXECUTION OUTPUT---------------------\n");
-			debug_cout("Line completed execution\n");
+			d_cout("-------------------END EXECUTION OUTPUT---------------------\n");
+			d_cout("Line completed execution\n");
 			// If the exit shell signal is the return code, then close the shell
 			if (return_value != NORMAL_EXIT) {
 				switch (return_value) {
@@ -415,7 +496,7 @@ int main() {
 						break;
 				}
 			}
-			debug_cout("Passed the return value checks\n");
+			d_cout("Passed the return value checks\n");
         }
         // Free the memory for the input string
         free(line);

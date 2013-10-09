@@ -8,3 +8,6 @@ MyShell: $(OBJS)
 
 clean:
 	rm -rf $(NAME)
+
+debug:
+	g++ $(OBJS) -l readline -o $(NAME) -DDEBUG=1
