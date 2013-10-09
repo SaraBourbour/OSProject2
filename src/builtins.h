@@ -27,10 +27,20 @@
 // Return normal code for history expansion
 #define NORMAL_EXIT_EXPANSION	int(1)
 // Signals for exiting shell
-#define SIGNAL_EXIT_SHELL   int(-1024)
+#define SIGNAL_EXIT_SHELL   	int(-1024)
 
 // Low level debugging switch
-#define LOW_LEVEL_DEBUG		false
+#define LOW_LEVEL_DEBUG			true
+
+// Representations of standard IO
+#define STD_IN					int(0)
+#define STD_OUT					int(1)
+#define STD_ERR					int(2)
+
+// Representations for redirect flags
+#define REDIRECT_IN				int(0)
+#define REDIRECT_OUT			int(1)
+#define REDIRECT_APPEND			int(2)
 
 using std::vector;
 using std::string;

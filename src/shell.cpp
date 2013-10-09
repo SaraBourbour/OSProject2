@@ -37,6 +37,14 @@ map<string, command> builtins;
 // Variables local to the shell
 map<string, string> localvars;
 
+// A list of accepted redirect operators
+string redirect_operators[] = {"<", ">", ">>"};
+
+// Tracks if there are redirects that need to be processed for this line
+bool std_in_redirect = false;
+bool std_out_redirect = false;
+bool std_out_append_redirect = false;
+
 
 
 // Handles external commands, redirects, and pipes.
@@ -141,8 +149,9 @@ vector<string> tokenize(const char* line) {
     
     // istringstream allows us to treat the string like a stream
     istringstream token_stream(line);
-    
+    debug_cout("Tokenizing line\n");
     while (token_stream >> token) {
+		debug_cout("Pushing back " + token + "\n");
         tokens.push_back(token);
     }
     
@@ -156,6 +165,7 @@ vector<string> tokenize(const char* line) {
         }
     }
     
+	debug_cout("Tokenizing complete\n");
     return tokens;
 }
 
@@ -271,7 +281,7 @@ void initializeShell() {
     rl_attempted_completion_function = word_completion;
 	
 	// Print out greeting
-	cout << "Initializing hsh, v1.0.0:\n  User: " << user() << "\n  Home: " << getenv("HOME") << "\n  PWD: " << pwd() << "\n\n";
+	cout << "Initializing hsh, v1.1.0:\n  User: " << user() << "\n  Home: " << getenv("HOME") << "\n  PWD: " << pwd() << "\n\n";
 	
 	// Read in the history file
 	int return_value = read_history(NULL);
@@ -288,6 +298,20 @@ void initializeShell() {
 	cout << "\nHsh initialization complete!\n\n";
 }
 
+void check_for_redirects(vector<string> tokens){
+	for (size_t i = 0; i < tokens.size(); i++) {
+		for (size_t j = 0; j < sizeof(redirect_operators) / sizeof(redirect_operators[0]); j++) {
+			if (tokens[i] == redirect_operators[j]) {
+				debug_cout("Found a redirect operator: " + tokens[i] + "\n");
+				
+			}
+		}
+	}
+}
+
+int process_redirect(vector<string>tokens, int redirect_destination) {
+	return ABNORMAL_EXEC;
+}
 
 // The main program
 int main() {
@@ -305,6 +329,11 @@ int main() {
 	debug_cout("Command loop start\n");
     while (true) {
         
+		// Reset the redirection flags
+		std_in_redirect = false;
+		std_out_redirect = false;
+		std_out_append_redirect = false;
+		
         // Get the prompt to show, based on the return value of the last command
         string prompt = get_prompt(return_value);
         
@@ -319,14 +348,6 @@ int main() {
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
 			debug_cout("Command not empty\n");
-			// If null, there was a substitution error
-			if (!line) {
-				debug_cout("SUB ERROR!!\n");
-				return_second_value = return_value;
-				return_value = BAD_SUBSTITUTION;
-				continue;
-			}
-			debug_cout("Passed the null line check\n");
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
 			debug_cout("Input tokenized\n");
@@ -344,6 +365,12 @@ int main() {
 			}
 			
 			debug_cout("Substitution complete\n");
+			
+			if (std_in_redirect) {
+				debug_cout("Processing standard in redirect\n");
+				process_redirect(tokens, REDIRECT_IN);
+			}
+			
 			
 			debug_cout("Adding to history\n");
 			// Add this command to readline's history
