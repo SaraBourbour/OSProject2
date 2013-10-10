@@ -9,15 +9,7 @@
 #include "builtins.h"
 
 // Potentially useful #includes (either here or in builtins.h):
-//   #include <dirent.h>
-//   #include <errno.h>
 
-//   #include <signal.h>
-//   #include <sys/errno.h>
-//   #include <sys/param.h>
-
-//   #include <sys/wait.h>
-//   #include <unistd.h>
 
 using namespace std;
 
@@ -54,7 +46,6 @@ int execute_external_command(vector<string> tokens) {
 	bool pipe_to_child = false;
 	int pipe_index;
 	int child_PID = -1;
-	int *child_return_code = new int;
 	// Determine if we need to pipe
 	for (int i = 0; i < tokens.size(); i++) {
 		if (tokens[i] == "|") {
@@ -78,67 +69,26 @@ int execute_external_command(vector<string> tokens) {
 		// Don't forget the null
 		command[tokens.size()] = NULL;
 		// Try execution with each path in $PATH
-		d_printf("Preparing to path match the command\n");
-		string path = getenv("PATH");
-		string path_delimiter = ":";
-		size_t current_position = 0;
-		string path_component;
-		bool executed = false;
-		string file_to_execute;
-		
-		d_printf("Command[0]: %s\n", command[0]);
-		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
-			path_component = path.substr(0, current_position);
-			d_printf("Path component: %s\n", path_component.c_str());
-			// Append the path component to the command
-			file_to_execute = path_component + "/" + command[0];
-			d_printf("Trying command: %s\n", file_to_execute.c_str());
-			// Attempt to execute it
-			int ret_val = execve(file_to_execute.c_str(), command, environ);
-			d_printf("Exec returned: %d\n", ret_val);
-			// If the execution was good
-			if (ret_val != EXEC_FAIL) {
-				// Mark executed so we stop
-				executed = true;
-				// Return normal exit code
-				d_printf("Exiting with 0\n");
-				exit(NORMAL_EXIT);
-			}
-			// Chop that part of the path string off
-			path.erase(0, current_position + path_delimiter.length());
+		d_printf("Executing the command\n");
+		int ret_val = execvp(command[0], command);
+		if (ret_val == EXEC_FAIL) {
+			perror("exec");
+			exit(ret_val);
 		}
-		// Try execution with PWD for the command if PATH didn't find it
-		if (!executed) {
-			d_printf("Trying to execute with pwd\n");
-			file_to_execute = pwd() + "/" + command[0];
-			int ret_val = execve(file_to_execute.c_str(), command, environ);
-			if (ret_val != EXEC_FAIL) {
-				d_printf("PWD execution successful\n");
-				executed = true;
-				errno = 0;
-				exit(NORMAL_EXIT);
-			}
+		else {
+			exit(NORMAL_EXIT);
 		}
-		d_printf("Unable to execute, command not found\n");
-		// If we still haven't executed, return command not found
-		exit(CMD_NOT_FOUND);
 	}
 	// Else this is the parent
 	else {
 		d_printf("In parent process\n");
 		// Wait for the child to exit
-		wait(child_return_code);
-		// Sleep for 100ms to alleviate race condition on stdin
-		usleep(100000);
-		d_printf("Child exited with code: %d. Resuming parent control\n", *child_return_code);
-		if (*child_return_code != NORMAL_EXIT) {
-			d_printf("Child exited abnormally\n");
-			return *child_return_code;
-		}
+		int child_return_code = 0;
+		waitpid(child_PID, &child_return_code, 0);
+		d_printf("Child exited with code: %d, errno: %d. Resuming parent control\n", child_return_code, errno);
+		perror("test");
+		return child_return_code;
 	}
-	
-	// Check return codes for the external command
-    return NORMAL_EXIT;
 }
 
 // Return a string representing the prompt to display to the user. It needs to
