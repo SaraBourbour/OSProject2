@@ -66,23 +66,6 @@ int execute_external_command(vector<string> tokens) {
 		}
 		// Don't forget the null
 		command[tokens.size()] = NULL;
-		
-		// Prepare file descriptors, if needed
-		if (redirect_flags[REDIRECT_IN] == 1) {
-			int in_fd = open(redirect_tokens[1].c_str(), O_RDONLY, 0);
-			dup2(in_fd, STDIN);
-			close(in_fd);
-		}
-		else if (redirect_flags[REDIRECT_OUT] == 1) {
-			int out_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-			dup2(out_fd, STD_OUT);
-			close(out_fd);
-		}
-		else if (redirect_flags[REDIRECT_APPEND] == 1) {
-			int append_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-			dup2(append_fd, STD_OUT);
-			close(append_fd);
-		}
 		// Try execution with each path in $PATH
 		d_printf("Preparing to path match the command\n");
 		string path = getenv("PATH");
@@ -145,43 +128,6 @@ int execute_external_command(vector<string> tokens) {
 	
 	// Check return codes for the external command
     return NORMAL_EXIT;
-}
-
-// Handles the internal command and it's redirects
-int execute_internal_command(map<string, command>::iterator cmd, vector<string> tokens) {
-	// Ignore input redirect, it does nothing on internal commands
-	d_printf("Executing internal command\n");
-	int ret_val;
-	if (redirect_flags[STD_IN] == 1 || redirect_flags[STD_OUT] == 1) {
-		// Redirect standard out input to a file
-		int stdout_fd;
-		int out_fd;
-		stdout_fd = dup(1);
-		if (redirect_flags[REDIRECT_IN] == 1) {
-			d_printf("Redirecting output to file\n");
-			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
-		}
-		else if (redirect_flags[REDIRECT_OUT] == 1) {
-			d_printf("Appending output to file\n");
-			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_APPEND | O_WRONLY, 0644);
-		}
-		if (out_fd > 0) {
-			perror("open");
-			return errno;
-		}
-		d_printf("Output fd: %d\n", out_fd);
-		dup2(out_fd, 1);
-		ret_val = ((*cmd->second)(tokens));
-		fflush(stdout);
-		close(out_fd);
-		dup2(stdout_fd, 1);
-		close(stdout_fd);
-	}
-	else {
-		d_printf("Executing command\n");
-		ret_val = ((*cmd->second)(tokens));
-	}
-	return ret_val;
 }
 
 // Return a string representing the prompt to display to the user. It needs to
@@ -340,13 +286,50 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
     int return_value = 0;
     
     if (tokens.size() != 0) {
+		int stdin_fd = dup(STD_IN);
+		int stdout_fd = dup(STD_OUT);
+		int in_fd, out_fd, append_fd;
+		// Prepare file descriptors, if needed
+		if (redirect_flags[REDIRECT_IN] == 1) {
+			in_fd = open(redirect_tokens[1].c_str(), O_RDONLY, 0);
+			dup2(in_fd, STD_IN);
+			close(in_fd);
+		}
+		else if (redirect_flags[REDIRECT_OUT] == 1) {
+			out_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			dup2(out_fd, STD_OUT);
+			close(out_fd);
+		}
+		else if (redirect_flags[REDIRECT_APPEND] == 1) {
+			append_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+			dup2(append_fd, STD_OUT);
+			close(append_fd);
+		}
+		
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
         
         if (cmd == builtins.end()) {
 			d_printf("Could not find an internal command, trying external\n");
-            return execute_external_command(tokens);
+            int ret_val = execute_external_command(tokens);
+			fflush(stdin);
+			fflush(stdout);
+			close(in_fd);
+			close(out_fd);
+			close(append_fd);
+			dup2(stdin_fd, STD_IN);
+			dup2(stdout_fd, STD_OUT);
+			close(stdin_fd);
+			close(stdout_fd);
+			return ret_val;
+			
         } else {
-			return execute_internal_command(cmd, tokens);
+			int ret_val = ((*cmd->second)(tokens));
+			// Flush and reset file descriptors
+			fflush(stdout);
+			close(out_fd);
+			dup2(stdout_fd, STD_OUT);
+			close(stdout_fd);
+			return ret_val;
         }
     }
     return BLANK_COMMAND;
