@@ -8,29 +8,51 @@
 #include <unistd.h>
 #include <sstream>
 #include <stack>
+#include <errno.h>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/types.h>
 
 // Readline lib
 #include <readline/readline.h>
 #include <readline/history.h>
 
-// Return codes for builtins
-#define NORMAL_EXIT        		int(0)
-#define BAD_FILE_OR_DIR    		int(1)
-#define INVALID_ARGUMENTS   	int(2)
-#define ABNORMAL_EXEC			int(3)
-#define TOO_MANY_ARGUMENTS		int(4)
-#define NOT_READY				int(5)
-#define CMD_NOT_FOUND			int(6)
-#define BLANK_COMMAND			int(7)
-#define BAD_SUBSTITUTION		int(8)
+// Return codes for functions
+#define EXEC_FAIL					int(-1)
+#define NORMAL_EXIT        			int(0)
+#define BAD_FILE_OR_DIR    			int(1)
+#define INVALID_ARGUMENTS   		int(2)
+#define ABNORMAL_EXEC				int(3)
+#define TOO_MANY_ARGUMENTS			int(4)
+#define NOT_READY					int(5)
+#define CMD_NOT_FOUND				int(6)
+#define BLANK_COMMAND				int(7)
+#define BAD_SUBSTITUTION			int(8)
+#define MULTIPLE_REDIRECTS			int(9)
+#define BAD_REDIRECT				int(10)
 
 // Return normal code for history expansion
-#define NORMAL_EXIT_EXPANSION	int(1)
+#define NORMAL_EXIT_EXPANSION		int(1)
 // Signals for exiting shell
-#define SIGNAL_EXIT_SHELL   int(-1024)
+#define SIGNAL_EXIT_SHELL   		int(-1024)
 
-// Low level debugging switch
-#define LOW_LEVEL_DEBUG		false
+// Representations of standard IO
+#define STD_IN						int(0)
+#define STD_OUT						int(1)
+#define STD_ERR						int(2)
+
+// Representations for redirect flags
+#define REDIRECT_IN					int(0)
+#define REDIRECT_OUT				int(1)
+#define REDIRECT_APPEND				int(2)
+
+#ifdef DEBUG
+#define d_printf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#define DEBUGGING_ENABLED true
+#else
+#define d_printf(...)
+#define DEBUGGING_ENABLED false
+#endif
 
 using std::vector;
 using std::string;
@@ -83,7 +105,7 @@ string user();
 
 string last_command_status(int code);
 
-void debug_cout(string output);
+void debug_cout(const char* arg, ... );
 
 void print_last_amount_history(int amount);
 

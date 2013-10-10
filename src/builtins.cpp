@@ -26,7 +26,7 @@ int com_ls(vector<string>& tokens) {
     
     // output each entry in the directory
     for (dirent* current = readdir(dir); current; current = readdir(dir)) {
-        cout << current->d_name << endl;
+        printf("%s\n", current->d_name);
     }
     
     // return success
@@ -35,30 +35,28 @@ int com_ls(vector<string>& tokens) {
 
 
 int com_cd(vector<string>& tokens) {
-	if (LOW_LEVEL_DEBUG) {
-		debug_cout("All tokens in cd: ");
+	if (DEBUGGING_ENABLED) {
+		d_printf("All tokens in cd: ");
 		for (int i=0; i<tokens.size(); i++) {
-			debug_cout(tokens[i] + " ");
+			d_printf("%s ", tokens[i].c_str());
 		}
-		debug_cout("\n");
+		d_printf("\n");
 	}
     if (tokens.size() == 2) {
         // If the first value is a '/', using an absolute path
         if (tokens[1][0] == '/') {
-			debug_cout("Changing to: " + tokens[1] + "\n");
-			debug_cout("Pushing pwd onto the directory stack");
+			d_printf("Changing to: %s\n", tokens[1].c_str());
+			d_printf("Pushing pwd onto the directory stack");
 			directory_stack->push(pwd());
             int ret_val = chdir(tokens[1].c_str());
-			stringstream debug;
-			debug << "Return value of chdir: " << ret_val << "\n";
-			debug_cout(debug.str());
+			d_printf("Return value of chdir: %d\n", ret_val);
 			if (ret_val != NORMAL_EXIT) {
 				perror("cd");
 			}
             return ret_val;
         }
 		else if (tokens[1][0] == '-') {
-			debug_cout("Changing to previous directory\n");
+			d_printf("Changing to previous directory\n");
 			int ret_val = chdir(directory_stack->top().c_str());
 			directory_stack->pop();
 			if (ret_val != NORMAL_EXIT) {
@@ -84,7 +82,7 @@ int com_cd(vector<string>& tokens) {
         }
     }
 	else if (tokens.size() == 1) {
-		debug_cout("Pushing pwd onto the directory stack\n");
+		d_printf("Pushing pwd onto the directory stack\n");
 		directory_stack->push(pwd());
 		chdir(getenv("HOME"));
 		return NORMAL_EXIT;
@@ -98,21 +96,21 @@ int com_cd(vector<string>& tokens) {
 
 
 int com_pwd(vector<string>& tokens) {
-    cout << pwd() << endl;
+    printf("%s\n", pwd().c_str());
     return NORMAL_EXIT;
 }
 
 
 int com_alias(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
-    cout << "alias called" << endl; // delete when implemented
+    printf("alias called\n"); // delete when implemented
     return 1;
 }
 
 
 int com_unalias(vector<string>& tokens) {
     // TODO: YOUR CODE GOES HERE
-    cout << "unalias called" << endl; // delete when implemented
+    printf("unalias called\n"); // delete when implemented
     return NORMAL_EXIT;
 }
 
@@ -120,7 +118,7 @@ int com_unalias(vector<string>& tokens) {
 int com_echo(vector<string>& tokens) {
 	// If there's nothing to echo, echo nothing
 	if (tokens.size() == 1) {
-		cout << endl;
+		printf("\n");
 		return NORMAL_EXIT;
 	}
 	// Else we hav to echo something
@@ -129,11 +127,11 @@ int com_echo(vector<string>& tokens) {
 		for (int i = 1; i < tokens.size(); ++i) {
 			string tempToken = tokens[i];
 			if (i == tokens.size() - 1) {
-				cout << tokens[i] << endl;
+				printf("%s\n", tokens[i].c_str());
 				return NORMAL_EXIT;
 			}
 			else {
-				cout << tokens[i] << " ";
+				printf("%s ", tokens[i].c_str());
 				//TODO: Stop if a pipe is encountered
 			}
 		}
@@ -149,19 +147,17 @@ int com_exit(vector<string>& tokens) {
 
 
 int com_history(vector<string>& tokens) {
-	debug_cout("In history\n");
+	d_printf("In history\n");
 	if (history_length == 0) {
 		return NORMAL_EXIT;
 	}
-	debug_cout("Passed no history check\n");
+	d_printf("Passed no history check\n");
     if (tokens.size() > 2) {
 		perror("history");
 		return TOO_MANY_ARGUMENTS;
 	}
 	else if (tokens.size() == 2) {
-		debug_cout("Passed too many arguments check\n");
-		debug_cout("Two tokens found\n");
-		debug_cout("Ensuring argument is not negative\n");
+		d_printf("Passed too many arguments check\nTwo tokens found\nEnsuring argument is not negative\n");
 		if (tokens[1][0] == '-') {
 			cerr << "history: cannot have a negative argument\n";
 			return INVALID_ARGUMENTS;
@@ -171,12 +167,11 @@ int com_history(vector<string>& tokens) {
 		print_last_amount_history(atoi(tokens[1].c_str()));
 	}
 	else if (tokens.size() == 1) {
-		debug_cout("Passed too many arguments check\n");
-		debug_cout("Found only one token\n");
+		d_printf("Passed too many arguments check\nFound only one token\n");
 		print_last_amount_history(history_length);
 	}
 	else {
-		debug_cout("WTF?! NEGATIVE ARRAY SIZE!?\n");
+		d_printf("WTF?! NEGATIVE ARRAY SIZE!?\n");
 		// This should never happen, implies negative size
 		perror("history");
 		return ABNORMAL_EXEC;
@@ -191,20 +186,18 @@ void print_last_amount_history(int amount) {
 		amount = history_length;
 	}
 	HIST_ENTRY *tempHistoryEntry = NULL;
-	debug_cout("Temp entry created\n");
+	d_printf("Temp entry created\n");
 	for (int i = history_length - amount; i <= history_length; i++) {
 		tempHistoryEntry = history_get(i);
-		stringstream debug;
-		debug << "\nGot a new history element at: " << i << "\n";
-		debug_cout(debug.str());
+		d_printf("\nGot a new history element at: %d\n", i);
 		if (tempHistoryEntry == NULL) {
-			debug_cout("Element was null!\n");
+			d_printf("Element was null!\n");
 			// Silenced error, this is okay. It's for compatibility for Linux vs BSD
-			//				perror("Trying to parse a null history pointer, moving on:");
+			// perror("Trying to parse a null history pointer, moving on:");
 			continue;
 		}
 		else {
-			cout << "   " << i << "  " << tempHistoryEntry->line << endl;
+			printf("   %d  %s\n", i, tempHistoryEntry->line);
 		}
 	}
 }
@@ -221,10 +214,4 @@ string last_command_status(int code) {
 	ss << "lc: ";
 	ss << code;
 	return ss.str();
-}
-
-void debug_cout(string output) {
-	if (LOW_LEVEL_DEBUG) {
-		cout << output;
-	}
 }

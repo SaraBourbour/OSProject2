@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1F6F97C117F78D9C006E50A4"
-               BuildableName = "OS-Project2-Shell"
-               BlueprintName = "OS-Project2-Shell"
+               BlueprintIdentifier = "1F5260021805342200D4BCED"
+               BuildableName = "DEBUG-OS-Project2-Shell"
+               BlueprintName = "DEBUG-OS-Project2-Shell"
                ReferencedContainer = "container:OS-Project2-Shell.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
