@@ -52,30 +52,22 @@ int execute_external_command(vector<string> tokens) {
 	int child_PID = -1;
 	int child_return_code = -1;
 	// Fork off a new process
-	d_cout("Forking a child process\n");
+	d_printf("Forking a child process\n");
 	child_PID = fork();
 	// If this process is the child
 	if (child_PID == 0) {
-		d_cout("Inside the child process\n");
+		d_printf("Inside the child process\n");
 		// Generate the command char *const command[], with NULL on the end
-		char *command[tokens.size() + 1];
-		d_cout("Generating command array\n");
+		char *command[tokens.size()];
+		d_printf("Generating command array\n");
 		for (int i = 0; i < tokens.size(); i++) {
-			// Create an array to hold the string
-			char tmp_c_string[tokens[i].size() + 1];
-			// Copy the string over, using sketchy string copy
-			size_t length_of_temp = tokens[i].copy(tmp_c_string, tokens[i].size(), 0);
-			// Null terminate the string
-			tmp_c_string[length_of_temp]='\0';
-			// Set the string to the args array index
-			command[i] = tmp_c_string;
-			d_cout("Setting next command index to ", command[i], "\n");
+			command[i] = (char*)tokens[i].c_str();
 		}
 		// Don't forget the null
-		command[tokens.size() + 1] = NULL;
+//		command[tokens.size() + 1] = NULL;
 		
 		// Try execution with each path in $PATH
-		d_cout("Preparing to path match the command\n");
+		d_printf("Preparing to path match the command\n");
 		string path = getenv("PATH");
 		string path_delimiter = ":";
 		size_t current_position = 0;
@@ -84,18 +76,23 @@ int execute_external_command(vector<string> tokens) {
 		string file_to_execute;
 		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
 			path_component = path.substr(0, current_position);
-			d_cout("Path component: ", path_component.c_str());
+			d_printf("Path component: %s\n", path_component.c_str());
+			d_printf("Command[0]: %s\n", command[0]);
 			// Append the path component to the command
-			file_to_execute = path_component + command[0];
-			d_cout("Trying command ", file_to_execute.c_str(), "\n");
+			file_to_execute = path_component + "/" + command[0];
+			d_printf("Trying command: %s\n", file_to_execute.c_str());
 			// Attempt to execute it
 			int ret_val = execve(file_to_execute.c_str(), command, environ);
+			d_printf("Exec returned: %d\n", ret_val);
 			// If the execution was good
 			if (ret_val != EXEC_FAIL) {
 				// Mark executed so we stop
 				executed = true;
 				// Return normal exit code
-				return NORMAL_EXIT;
+				exit(NORMAL_EXIT);
+			}
+			else {
+				d_printf("Exec did not successfully finish\n");
 			}
 			// Chop that part of the path string off
 			path.erase(0, current_position + path_delimiter.length());
@@ -106,19 +103,21 @@ int execute_external_command(vector<string> tokens) {
 			int ret_val = execve(file_to_execute.c_str(), command, environ);
 			if (ret_val != EXEC_FAIL) {
 				executed = true;
-				return NORMAL_EXIT;
+				exit(NORMAL_EXIT);
 			}
 		}
 		
 		// If we still haven't executed, return command not found
-		return CMD_NOT_FOUND;
+		exit(CMD_NOT_FOUND);
 	}
 	// Else this is the parent
 	else {
-		d_cout("In parent process\n");
+		d_printf("In parent process\n");
 		// Wait for the child to exit
 		wait(&child_return_code);
-		d_cout("Child exited, resuming parent control\n");
+		
+//		printf<< child_return_code;
+//		d_printf("Child exited with code: ", child_return_code, " resuming parent control\n");
 	}
 	
 	// Check return codes for the external command
@@ -221,9 +220,9 @@ vector<string> tokenize(const char* line) {
     
     // istringstream allows us to treat the string like a stream
     istringstream token_stream(line);
-    d_cout("Tokenizing line\n");
+    d_printf("Tokenizing line\n");
     while (token_stream >> token) {
-		d_cout("Pushing back ", token.c_str(), "\n");
+		d_printf("Pushing back: %s\n", token.c_str());
         tokens.push_back(token);
     }
     
@@ -237,7 +236,7 @@ vector<string> tokenize(const char* line) {
         }
     }
     
-	d_cout("Tokenizing complete\n");
+	d_printf("Tokenizing complete\n");
     return tokens;
 }
 
@@ -251,7 +250,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
         
         if (cmd == builtins.end()) {
-			d_cout("Could not find an internal command, trying external\n");
+			d_printf("Could not find an internal command, trying external\n");
             return execute_external_command(tokens);
         } else {
             return ((*cmd->second)(tokens));
@@ -310,13 +309,13 @@ void local_variable_assignment(vector<string>& tokens) {
 }
 
 string history_substitution(string token) {
-	d_cout("Beginning history substitution for token: ", token.c_str(), "\n");
+	d_printf("Beginning history substitution for token: %s\n", token.c_str());
 	char** new_tokens = new char*[1];
 	int ret_val = history_expand((char*)token.c_str(), new_tokens);
-	d_cout("Expansion complete. Return code: ", ret_val, "\n");
+	d_printf("Expansion complete. Return code: %d\n", ret_val);
 	
 	if (ret_val != NORMAL_EXIT_EXPANSION) {
-		d_cout("Token: ", token.c_str(), " not substituted\n");
+		d_printf("Token: %s not substituted\n", token.c_str());
 		return token;
 	}
 	
@@ -344,13 +343,13 @@ void initializeShell() {
     rl_attempted_completion_function = word_completion;
 	
 	// Print out greeting
-	cout << "Initializing hsh, v1.1.0:\n  User: " << user() << "\n  Home: " << getenv("HOME") << "\n  PWD: " << pwd() << "\n\n";
+	printf("Initializing hsh, v1.1.0:\n  User: %s\n  Home: %s\n  PWD: %s\n\n", user().c_str(), getenv("HOME"), pwd().c_str());
 	
 	// Read in the history file
 	int return_value = read_history(NULL);
 	if (return_value != NORMAL_EXIT) {
 		perror("Could not load history from disk!");
-		cout << "Creating new blank history file." << endl;
+		printf("Creating new blank history file.\n");
 		return_value = write_history(NULL);
 		if (return_value != NORMAL_EXIT) {
 			perror("Could not make new history file! History will not be persistent!");
@@ -358,13 +357,13 @@ void initializeShell() {
 	}
 	
 	// Initialization complete message
-	cout << "\nHsh initialization complete!\n\n";
+	printf("\nHsh initialization complete!\n\n");
 }
 
 int check_for_redirects(vector<string> tokens){
-	d_cout("Checking for redirects in line\n");
+	d_printf("Checking for redirects in line\n");
 	for (size_t i = 0; i < tokens.size(); i++) {
-		d_cout("Found a redirect operator: ", tokens[i].c_str(), "\n");
+		d_printf("Found a redirect operator: %s\n", tokens[i].c_str());
 		if (tokens[i] == "<") {
 			if (std_in_redirect) {
 				cerr << "Only one redirection is allowed per command\n";
@@ -394,7 +393,7 @@ int check_for_redirects(vector<string> tokens){
 		cerr << "Only one redirection is allowed per command\n";
 		return MULTIPLE_REDIRECTIONS;
 	}
-	d_cout("Redirect check completed without errors\n");
+	d_printf("Redirect check completed without errors\n");
 	return NORMAL_EXIT;
 }
 
@@ -415,7 +414,7 @@ int main() {
 	int return_second_value = NOT_READY;
     
     // Loop for multiple successive commands
-	d_cout("Command loop start\n");
+	d_printf("Command loop start\n");
     while (true) {
         
 		// Reset the redirection flags
@@ -428,59 +427,59 @@ int main() {
         
         // Read a line of input from the user
         char* line = readline(prompt.c_str());
-        d_cout("Line read\n");
+        d_printf("Line read\n");
         // If the pointer is null, then an EOF has been received (ctrl-d)
         if (!line) {
             break;
         }
-		d_cout("Passed null line check\n");
+		d_printf("Passed null line check\n");
         // If the command is non-empty, attempt to execute it
         if (line[0]) {
-			d_cout("Command not empty\n");
+			d_printf("Command not empty\n");
             // Break the raw input line into tokens
             vector<string> tokens = tokenize(line);
-			d_cout("Input tokenized\n");
+			d_printf("Input tokenized\n");
 
-			d_cout("Substituting each token\n");
+			d_printf("Substituting each token\n");
 			
 			int ret_val;
 			
 			for (int i = 0; i < tokens.size(); i++) {
 				string return_string = history_substitution(tokens[i]);
 				tokens[i] = return_string.c_str();
-				d_cout("Substitution complete on token: ", tokens[i].c_str(), " got: ", return_string.c_str(), "\n");
+				d_printf("Substitution complete on token: %s. Got: %s\n", tokens[i].c_str(), return_string.c_str());
 			}
 			
-			d_cout("Substitution complete\n");
+			d_printf("Substitution complete\n");
 			
-			d_cout("Adding to history\n");
+			d_printf("Adding to history\n");
 			// Add this command to readline's history
 			stringstream history_string;
 			for (int i = 0; i < tokens.size(); i++) {
 				history_string << tokens[i];
 			}
 			add_history(history_string.str().c_str());
-			d_cout("Updating the history file\n");
+			d_printf("Updating the history file\n");
 			// Update history file
 			if (write_history(NULL) != NORMAL_EXIT) {
 				perror("Could not save history file!");
 			}
-			d_cout("Wrote history, passed return value check\n");
+			d_printf("Wrote history, passed return value check\n");
 
         
             // Handle local variable declarations
             local_variable_assignment(tokens);
-            d_cout("Local variables assigned\n");
+            d_printf("Local variables assigned\n");
             // Substitute variable references
             variable_substitution(tokens);
-            d_cout("Variables substituted\n");
+            d_printf("Variables substituted\n");
 			return_second_value = return_value;
-			d_cout("Updated second return value\n");
-			d_cout("----------------------EXECUTION OUTPUT----------------------\n");
+			d_printf("Updated second return value\n");
+			d_printf("----------------------EXECUTION OUTPUT----------------------\n");
             // Execute the line
             return_value = execute_line(tokens, builtins);
-			d_cout("-------------------END EXECUTION OUTPUT---------------------\n");
-			d_cout("Line completed execution\n");
+			d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
+			d_printf("Line completed execution\n");
 			// If the exit shell signal is the return code, then close the shell
 			if (return_value != NORMAL_EXIT) {
 				switch (return_value) {
@@ -496,7 +495,7 @@ int main() {
 						break;
 				}
 			}
-			d_cout("Passed the return value checks\n");
+			d_printf("Passed the return value checks\n");
         }
         // Free the memory for the input string
         free(line);

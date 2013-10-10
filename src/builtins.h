@@ -42,13 +42,12 @@
 #define REDIRECT_OUT				int(1)
 #define REDIRECT_APPEND				int(2)
 
-#define d_cout(...) debug_cout(__VA_ARGS__, NULL)
-
-// To handle the debug output. Requres the compiler flag to be set
-#if DEBUG
-	#define DEBUGGING_ENABLED		true
+#ifdef DEBUG
+#define d_printf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#define DEBUGGING_ENABLED true
 #else
-	#define DEBUGGING_ENABLED		false
+#define d_printf(...)
+#define DEBUGGING_ENABLED false
 #endif
 
 using std::vector;

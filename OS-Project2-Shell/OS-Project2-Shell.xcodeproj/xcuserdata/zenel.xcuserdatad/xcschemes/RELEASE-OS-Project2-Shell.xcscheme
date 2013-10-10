@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "1F6F97C117F78D9C006E50A4"
-               BuildableName = "OS-Project2-Shell"
+               BuildableName = "RELEASE-OS-Project2-Shell"
                BlueprintName = "RELEASE-OS-Project2-Shell"
                ReferencedContainer = "container:OS-Project2-Shell.xcodeproj">
             </BuildableReference>
