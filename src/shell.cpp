@@ -50,7 +50,7 @@ bool std_out_append_redirect = false;
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
 	int child_PID = -1;
-	int child_return_code = -1;
+	int *child_return_code = new int;
 	// Fork off a new process
 	d_printf("Forking a child process\n");
 	child_PID = fork();
@@ -58,13 +58,13 @@ int execute_external_command(vector<string> tokens) {
 	if (child_PID == 0) {
 		d_printf("Inside the child process\n");
 		// Generate the command char *const command[], with NULL on the end
-		char *command[tokens.size()];
+		char *command[tokens.size() + 1];
 		d_printf("Generating command array\n");
 		for (int i = 0; i < tokens.size(); i++) {
 			command[i] = (char*)tokens[i].c_str();
 		}
 		// Don't forget the null
-//		command[tokens.size() + 1] = NULL;
+		command[tokens.size()] = NULL;
 		
 		// Try execution with each path in $PATH
 		d_printf("Preparing to path match the command\n");
@@ -74,10 +74,10 @@ int execute_external_command(vector<string> tokens) {
 		string path_component;
 		bool executed = false;
 		string file_to_execute;
+		d_printf("Command[0]: %s\n", command[0]);
 		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
 			path_component = path.substr(0, current_position);
 			d_printf("Path component: %s\n", path_component.c_str());
-			d_printf("Command[0]: %s\n", command[0]);
 			// Append the path component to the command
 			file_to_execute = path_component + "/" + command[0];
 			d_printf("Trying command: %s\n", file_to_execute.c_str());
@@ -89,24 +89,25 @@ int execute_external_command(vector<string> tokens) {
 				// Mark executed so we stop
 				executed = true;
 				// Return normal exit code
+				d_printf("Exiting with 0\n");
 				exit(NORMAL_EXIT);
-			}
-			else {
-				d_printf("Exec did not successfully finish\n");
 			}
 			// Chop that part of the path string off
 			path.erase(0, current_position + path_delimiter.length());
 		}
 		// Try execution with PWD for the command if PATH didn't find it
 		if (!executed) {
+			d_printf("Trying to execute with pwd\n");
 			file_to_execute = pwd() + command[0];
 			int ret_val = execve(file_to_execute.c_str(), command, environ);
 			if (ret_val != EXEC_FAIL) {
+				d_printf("PWD execution successful\n");
 				executed = true;
+				errno = 0;
 				exit(NORMAL_EXIT);
 			}
 		}
-		
+		d_printf("Unable to execute, command not found\n");
 		// If we still haven't executed, return command not found
 		exit(CMD_NOT_FOUND);
 	}
@@ -114,10 +115,14 @@ int execute_external_command(vector<string> tokens) {
 	else {
 		d_printf("In parent process\n");
 		// Wait for the child to exit
-		wait(&child_return_code);
-		
-//		printf<< child_return_code;
-//		d_printf("Child exited with code: ", child_return_code, " resuming parent control\n");
+		wait(child_return_code);
+		// Sleep for 100ms to alleviate race condition on stdin
+		usleep(100000);
+		d_printf("Child exited with code: %d. Resuming parent control\n", *child_return_code);
+		if (*child_return_code != NORMAL_EXIT) {
+			d_printf("Child exited abnormally\n");
+			return *child_return_code;
+		}
 	}
 	
 	// Check return codes for the external command

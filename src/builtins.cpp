@@ -193,7 +193,7 @@ void print_last_amount_history(int amount) {
 		if (tempHistoryEntry == NULL) {
 			d_printf("Element was null!\n");
 			// Silenced error, this is okay. It's for compatibility for Linux vs BSD
-			//				perror("Trying to parse a null history pointer, moving on:");
+			// perror("Trying to parse a null history pointer, moving on:");
 			continue;
 		}
 		else {
@@ -215,16 +215,3 @@ string last_command_status(int code) {
 	ss << code;
 	return ss.str();
 }
-
-//void debug_printf(const char *arg, ... ) {
-//	if (DEBUGGING_ENABLED) {
-//		va_list arguments;
-//		stringstream output;
-//		for (va_start(arguments, arg); arg != NULL; arg = va_arg(arguments, const char *)) {
-//			printf << "adding " << arg << " to stream\n";
-//			output << arg;
-//		}
-//		printf << output.str();
-//		va_end(arguments);
-//	}
-//}
