@@ -50,8 +50,19 @@ char redirect_flags[3];
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
 	
+	// Marks if output should be piped to child
+	bool pipe_to_child = false;
+	int pipe_index;
 	int child_PID = -1;
 	int *child_return_code = new int;
+	// Determine if we need to pipe
+	for (int i = 0; i < tokens.size(); i++) {
+		if (tokens[i] == "|") {
+			pipe_to_child = true;
+			pipe_index = i;
+			break;
+		}
+	}
 	// Fork off a new process
 	d_printf("Forking a child process\n");
 	child_PID = fork();
@@ -279,13 +290,8 @@ int tokenize(const char* line, vector<string>& save_to) {
     return NORMAL_EXIT;
 }
 
-
-// Executes a line of input by either calling execute_external_command or
-// directly invoking the built-in command.
-int execute_line(vector<string>& tokens, map<string, command>& builtins) {
-    int return_value = 0;
-    
-    if (tokens.size() != 0) {
+int execute_single_command(vector<string>& tokens, map<string, command>& builtins) {
+	if (tokens.size() != 0) {
 		int stdin_fd = dup(STD_IN);
 		int stdout_fd = dup(STD_OUT);
 		int in_fd, out_fd, append_fd;
@@ -311,28 +317,74 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
         if (cmd == builtins.end()) {
 			d_printf("Could not find an internal command, trying external\n");
             int ret_val = execute_external_command(tokens);
-			fflush(stdin);
-			fflush(stdout);
-			close(in_fd);
-			close(out_fd);
-			close(append_fd);
-			dup2(stdin_fd, STD_IN);
-			dup2(stdout_fd, STD_OUT);
-			close(stdin_fd);
-			close(stdout_fd);
+			// If a redirect occurred
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
+				fflush(stdin);
+				fflush(stdout);
+				close(in_fd);
+				close(out_fd);
+				close(append_fd);
+				dup2(stdin_fd, STD_IN);
+				dup2(stdout_fd, STD_OUT);
+				close(stdin_fd);
+				close(stdout_fd);
+			}
 			return ret_val;
 			
         } else {
 			int ret_val = ((*cmd->second)(tokens));
-			// Flush and reset file descriptors
-			fflush(stdout);
-			close(out_fd);
-			dup2(stdout_fd, STD_OUT);
-			close(stdout_fd);
+			// If a redirect occurred
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
+				// Flush and reset file descriptors
+				fflush(stdout);
+				close(out_fd);
+				dup2(stdout_fd, STD_OUT);
+				close(stdout_fd);
+			}
 			return ret_val;
+			
         }
     }
     return BLANK_COMMAND;
+}
+
+// Executes a line of input by either calling execute_external_command or
+// directly invoking the built-in command.
+int execute_line(vector<string>& tokens, map<string, command>& builtins) {
+	d_printf("Starting line execution\n");
+    int return_value = 0;
+	vector< vector<string> > commands;
+	vector<string>::iterator tokens_iterator = tokens.begin();
+	vector<string> command;
+	d_printf("Generating commands\n");
+	while (tokens_iterator != tokens.end()) {
+		if (*tokens_iterator == "|") {
+			d_printf("Found a pipe\n");
+			commands.push_back(command);
+			command.clear();
+		}
+		else {
+			d_printf("Pushing back a command\n");
+			command.push_back(*tokens_iterator);
+		}
+		tokens_iterator++;
+	}
+	// Push back final command
+	commands.push_back(command);
+	command.clear();
+	d_printf("Found %d command(s)\n", (int)commands.size());
+	
+	// Execute each command individually
+	for (int i = 0; i < commands.size(); i++) {
+		d_printf("----------------------EXECUTION OUTPUT----------------------\n");
+		int ret_val = execute_single_command(commands[i], builtins);
+		d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
+		if (ret_val != NORMAL_EXIT) {
+			return ret_val;
+		}
+	}
+	
+	return NORMAL_EXIT;
 }
 
 
@@ -458,38 +510,6 @@ void set_redirect_flags() {
 	}
 }
 
-int handle_pipes(vector<string> tokens) {
-	bool pipe = false;
-	int remove_to_index = 0;
-	// Look for pipes
-	for (int i = 0; i < tokens.size(); i++) {
-		if (tokens[i] == "|") {
-			pipe = true;
-			remove_to_index = i;
-			break;
-		}
-	}
-	// If a pipe is found, execute only the first part here
-	if (pipe) {
-		int child_PID = -1;
-		// Fork the rest
-		child_PID = fork();
-		if (child_PID == 0) {
-			// In child
-		}
-		else {
-			// In parent
-		}
-		// Restart this function with everything up to pipe removed
-		handle_pipes(
-	}
-	// If no pipe is found, execute normally (recursive stopping condition)
-	else {
-		
-	}
-	return NORMAL_EXIT;
-}
-
 // The main program
 int main() {
 	
@@ -545,12 +565,7 @@ int main() {
 			d_printf("Substitution complete\n");
 			
 			d_printf("Adding to history\n");
-			// Add this command to readline's history
-			stringstream history_string;
-			for (int i = 0; i < tokens.size(); i++) {
-				history_string << tokens[i];
-			}
-			add_history(history_string.str().c_str());
+			add_history(line);
 			d_printf("Updating the history file\n");
 			// Update history file
 			if (write_history(NULL) != NORMAL_EXIT) {
@@ -565,16 +580,13 @@ int main() {
             // Substitute variable references
             variable_substitution(tokens);
 			
-			handle_pipes(tokens);
-			
 			
             d_printf("Variables substituted\n");
 			return_second_value = return_value;
 			d_printf("Updated second return value\n");
-			d_printf("----------------------EXECUTION OUTPUT----------------------\n");
+
             // Execute the line
             return_value = execute_line(tokens, builtins);
-			d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
 			d_printf("Line completed execution\n");
 			// If the exit shell signal is the return code, then close the shell
 			if (return_value != NORMAL_EXIT) {
