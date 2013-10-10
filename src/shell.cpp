@@ -440,6 +440,7 @@ void initializeShell() {
 }
 
 void set_redirect_flags() {
+	d_printf("Setting redirect flags\n");
 	redirect_flags[0] = redirect_flags[1] = redirect_flags[2] = 0;
 	d_printf("Redirect flags reset\n");
 	if (redirect_tokens.size() == 0) return;
@@ -457,6 +458,37 @@ void set_redirect_flags() {
 	}
 }
 
+int handle_pipes(vector<string> tokens) {
+	bool pipe = false;
+	int remove_to_index = 0;
+	// Look for pipes
+	for (int i = 0; i < tokens.size(); i++) {
+		if (tokens[i] == "|") {
+			pipe = true;
+			remove_to_index = i;
+			break;
+		}
+	}
+	// If a pipe is found, execute only the first part here
+	if (pipe) {
+		int child_PID = -1;
+		// Fork the rest
+		child_PID = fork();
+		if (child_PID == 0) {
+			// In child
+		}
+		else {
+			// In parent
+		}
+		// Restart this function with everything up to pipe removed
+		handle_pipes(
+	}
+	// If no pipe is found, execute normally (recursive stopping condition)
+	else {
+		
+	}
+	return NORMAL_EXIT;
+}
 
 // The main program
 int main() {
@@ -492,13 +524,6 @@ int main() {
             vector<string> tokens;
 			redirect_tokens.clear();
 			int tokenize_return_value = tokenize(line, tokens);
-			
-			for (int i = 0; i < tokens.size(); i++) {
-				d_printf("Token at %d: %s\n", i, tokens[i].c_str());
-			}
-			for (int j = 0; j < redirect_tokens.size(); j++) {
-				d_printf("Redir token at %d: %s\n", j, redirect_tokens[j].c_str());
-			}
 			if (tokenize_return_value != NORMAL_EXIT) {
 				return_second_value = return_value;
 				return_value = tokenize_return_value;
@@ -506,7 +531,6 @@ int main() {
 				continue;
 			}
 			d_printf("Input tokenized\n");
-			d_printf("Setting redirect flags\n");
 			set_redirect_flags();
 			d_printf("Substituting each token\n");
 			
@@ -540,6 +564,10 @@ int main() {
             d_printf("Local variables assigned\n");
             // Substitute variable references
             variable_substitution(tokens);
+			
+			handle_pipes(tokens);
+			
+			
             d_printf("Variables substituted\n");
 			return_second_value = return_value;
 			d_printf("Updated second return value\n");
