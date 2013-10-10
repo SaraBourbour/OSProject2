@@ -67,6 +67,22 @@ int execute_external_command(vector<string> tokens) {
 		// Don't forget the null
 		command[tokens.size()] = NULL;
 		
+		// Prepare file descriptors, if needed
+		if (redirect_flags[REDIRECT_IN] == 1) {
+			int in_fd = open(redirect_tokens[1].c_str(), O_RDONLY, 0);
+			dup2(in_fd, STDIN);
+			close(in_fd);
+		}
+		else if (redirect_flags[REDIRECT_OUT] == 1) {
+			int out_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			dup2(out_fd, STD_OUT);
+			close(out_fd);
+		}
+		else if (redirect_flags[REDIRECT_APPEND] == 1) {
+			int append_fd = open(redirect_tokens[1].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+			dup2(append_fd, STD_OUT);
+			close(append_fd);
+		}
 		// Try execution with each path in $PATH
 		d_printf("Preparing to path match the command\n");
 		string path = getenv("PATH");
@@ -75,6 +91,7 @@ int execute_external_command(vector<string> tokens) {
 		string path_component;
 		bool executed = false;
 		string file_to_execute;
+		
 		d_printf("Command[0]: %s\n", command[0]);
 		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
 			path_component = path.substr(0, current_position);
@@ -135,18 +152,22 @@ int execute_internal_command(map<string, command>::iterator cmd, vector<string> 
 	// Ignore input redirect, it does nothing on internal commands
 	d_printf("Executing internal command\n");
 	int ret_val;
-	if (redirect_flags[1] == 1 || redirect_flags[2] == 1) {
+	if (redirect_flags[STD_IN] == 1 || redirect_flags[STD_OUT] == 1) {
 		// Redirect standard out input to a file
 		int stdout_fd;
 		int out_fd;
 		stdout_fd = dup(1);
-		if (redirect_flags[1] == 1) {
+		if (redirect_flags[REDIRECT_IN] == 1) {
 			d_printf("Redirecting output to file\n");
 			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
 		}
-		else if (redirect_flags[2] == 1) {
+		else if (redirect_flags[REDIRECT_OUT] == 1) {
 			d_printf("Appending output to file\n");
 			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_APPEND | O_WRONLY, 0644);
+		}
+		if (out_fd > 0) {
+			perror("open");
+			return errno;
 		}
 		d_printf("Output fd: %d\n", out_fd);
 		dup2(out_fd, 1);
