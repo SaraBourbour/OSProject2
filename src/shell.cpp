@@ -11,11 +11,11 @@
 // Potentially useful #includes (either here or in builtins.h):
 //   #include <dirent.h>
 //   #include <errno.h>
-//   #include <fcntl.h>
+
 //   #include <signal.h>
 //   #include <sys/errno.h>
 //   #include <sys/param.h>
-//   #include <sys/types.h>
+
 //   #include <sys/wait.h>
 //   #include <unistd.h>
 
@@ -38,17 +38,18 @@ map<string, command> builtins;
 map<string, string> localvars;
 
 // A list of accepted redirect operators
-string redirect_operators[] = {"<", ">", ">>"};
+vector<string> redirect_operators;
 
-// Tracks if there are redirects that need to be processed for this line
-bool std_in_redirect = false;
-bool std_out_redirect = false;
-bool std_out_append_redirect = false;
+// File redirect tokens, i.e. everthing after the command when a <, >, >> is found.
+// Ex: `echo blah > file' would have {'>', "file"} in the vector
+vector<string> redirect_tokens;
 
-
+// char array to mark which redirect is active, can be used for multiple redirects
+char redirect_flags[3];
 
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
+	
 	int child_PID = -1;
 	int *child_return_code = new int;
 	// Fork off a new process
@@ -98,7 +99,7 @@ int execute_external_command(vector<string> tokens) {
 		// Try execution with PWD for the command if PATH didn't find it
 		if (!executed) {
 			d_printf("Trying to execute with pwd\n");
-			file_to_execute = pwd() + command[0];
+			file_to_execute = pwd() + "/" + command[0];
 			int ret_val = execve(file_to_execute.c_str(), command, environ);
 			if (ret_val != EXEC_FAIL) {
 				d_printf("PWD execution successful\n");
@@ -129,6 +130,38 @@ int execute_external_command(vector<string> tokens) {
     return NORMAL_EXIT;
 }
 
+// Handles the internal command and it's redirects
+int execute_internal_command(map<string, command>::iterator cmd, vector<string> tokens) {
+	// Ignore input redirect, it does nothing on internal commands
+	d_printf("Executing internal command\n");
+	int ret_val;
+	if (redirect_flags[1] == 1 || redirect_flags[2] == 1) {
+		// Redirect standard out input to a file
+		int stdout_fd;
+		int out_fd;
+		stdout_fd = dup(1);
+		if (redirect_flags[1] == 1) {
+			d_printf("Redirecting output to file\n");
+			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+		}
+		else if (redirect_flags[2] == 1) {
+			d_printf("Appending output to file\n");
+			out_fd = open(redirect_tokens[1].c_str(), O_CREAT | O_APPEND | O_WRONLY, 0644);
+		}
+		d_printf("Output fd: %d\n", out_fd);
+		dup2(out_fd, 1);
+		ret_val = ((*cmd->second)(tokens));
+		fflush(stdout);
+		close(out_fd);
+		dup2(stdout_fd, 1);
+		close(stdout_fd);
+	}
+	else {
+		d_printf("Executing command\n");
+		ret_val = ((*cmd->second)(tokens));
+	}
+	return ret_val;
+}
 
 // Return a string representing the prompt to display to the user. It needs to
 // include the current working directory and should also use the return value to
@@ -216,19 +249,43 @@ char** word_completion(const char* text, int start, int end) {
     return matches;
 }
 
+int exists_in_vector(vector<string> container, string token) {
+	if (container.size() < 1) return -1;
+	for (int i = 0; i < container.size(); i++) {
+		if (container[i] == token) return i;
+	}
+	return -1;
+}
+
 
 // Transform a C-style string into a C++ vector of string tokens, delimited by
-// whitespace.
-vector<string> tokenize(const char* line) {
+int tokenize(const char* line, vector<string>& save_to) {
     vector<string> tokens;
     string token;
-    
+    bool populate_redirect_tokens = false;
     // istringstream allows us to treat the string like a stream
     istringstream token_stream(line);
     d_printf("Tokenizing line\n");
     while (token_stream >> token) {
-		d_printf("Pushing back: %s\n", token.c_str());
-        tokens.push_back(token);
+		int is_redirect = exists_in_vector(redirect_operators, token);
+		if (is_redirect != -1) {
+			if (populate_redirect_tokens) {
+				cerr << "Multiple redirects are not allowed\n";
+				tokens.clear();
+				save_to = tokens;
+				return MULTIPLE_REDIRECTS;
+			}
+			d_printf("Found a redirect operator: %s\n", redirect_operators[is_redirect].c_str());
+			populate_redirect_tokens = true;
+		}
+		if (populate_redirect_tokens) {
+			d_printf("Pushing back to redirect tokens: %s\n", token.c_str());
+			redirect_tokens.push_back(token);
+		}
+		else {
+			d_printf("Pushing back to tokens: %s\n", token.c_str());
+			tokens.push_back(token);
+		}
     }
     
     // Search for quotation marks, which are explicitly disallowed
@@ -241,8 +298,18 @@ vector<string> tokenize(const char* line) {
         }
     }
     
+	// Ensure the redirect token length is only 0 or 2 long
+	d_printf("Redirect tokens size: %d\n", (int)redirect_tokens.size());
+	if ((int)redirect_tokens.size() != 0 && (int)redirect_tokens.size() != 2) {
+		cerr << "Invalid redirect syntax\n";
+		tokens.clear();
+		save_to = tokens;
+		return BAD_REDIRECT;
+	}
+	
 	d_printf("Tokenizing complete\n");
-    return tokens;
+	save_to = tokens;
+    return NORMAL_EXIT;
 }
 
 
@@ -258,7 +325,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 			d_printf("Could not find an internal command, trying external\n");
             return execute_external_command(tokens);
         } else {
-            return ((*cmd->second)(tokens));
+			return execute_internal_command(cmd, tokens);
         }
     }
     return BLANK_COMMAND;
@@ -360,51 +427,32 @@ void initializeShell() {
 			perror("Could not make new history file! History will not be persistent!");
 		}
 	}
+	redirect_operators.push_back("<");
+	redirect_operators.push_back(">");
+	redirect_operators.push_back(">>");
 	
 	// Initialization complete message
 	printf("\nHsh initialization complete!\n\n");
 }
 
-int check_for_redirects(vector<string> tokens){
-	d_printf("Checking for redirects in line\n");
-	for (size_t i = 0; i < tokens.size(); i++) {
-		d_printf("Found a redirect operator: %s\n", tokens[i].c_str());
-		if (tokens[i] == "<") {
-			if (std_in_redirect) {
-				cerr << "Only one redirection is allowed per command\n";
-				return MULTIPLE_REDIRECTIONS;
-			}
-			std_in_redirect = true;
-		}
-		else if (tokens[i] == ">") {
-			if (std_out_redirect) {
-				cerr << "Only one redirection is allowed per command\n";
-				return MULTIPLE_REDIRECTIONS;
-			}
-			std_out_redirect = true;
-		}
-		else if (tokens[i] == ">>") {
-			if (std_out_append_redirect) {
-				cerr << "Only one redirection is allowed per command\n";
-				return MULTIPLE_REDIRECTIONS;
-			}
-			std_out_append_redirect = true;
-		}
+void set_redirect_flags() {
+	redirect_flags[0] = redirect_flags[1] = redirect_flags[2] = 0;
+	d_printf("Redirect flags reset\n");
+	if (redirect_tokens.size() == 0) return;
+	if (redirect_tokens[0] == redirect_operators[0]) {
+		d_printf("Setting input redirect\n");
+		redirect_flags[0] = 1;
 	}
-	// If any two flags are set, then return an error
-	if ((std_in_redirect && (std_out_redirect || std_out_append_redirect))
-		|| (std_out_redirect && (std_in_redirect || std_out_append_redirect))
-		|| (std_out_append_redirect && (std_in_redirect || std_out_redirect))) {
-		cerr << "Only one redirection is allowed per command\n";
-		return MULTIPLE_REDIRECTIONS;
+	else if (redirect_tokens[0] == redirect_operators[1]) {
+		d_printf("Setting output redirect\n");
+		redirect_flags[1] = 1;
 	}
-	d_printf("Redirect check completed without errors\n");
-	return NORMAL_EXIT;
+	else if (redirect_tokens[0] == redirect_operators[2]) {
+		d_printf("Setting append redirect\n");
+		redirect_flags[2] = 1;
+	}
 }
 
-int process_redirect(vector<string>tokens, int redirect_destination) {
-	return ABNORMAL_EXEC;
-}
 
 // The main program
 int main() {
@@ -421,11 +469,6 @@ int main() {
     // Loop for multiple successive commands
 	d_printf("Command loop start\n");
     while (true) {
-        
-		// Reset the redirection flags
-		std_in_redirect = false;
-		std_out_redirect = false;
-		std_out_append_redirect = false;
 		
         // Get the prompt to show, based on the return value of the last command
         string prompt = get_prompt(return_value);
@@ -442,9 +485,25 @@ int main() {
         if (line[0]) {
 			d_printf("Command not empty\n");
             // Break the raw input line into tokens
-            vector<string> tokens = tokenize(line);
+            vector<string> tokens;
+			redirect_tokens.clear();
+			int tokenize_return_value = tokenize(line, tokens);
+			
+			for (int i = 0; i < tokens.size(); i++) {
+				d_printf("Token at %d: %s\n", i, tokens[i].c_str());
+			}
+			for (int j = 0; j < redirect_tokens.size(); j++) {
+				d_printf("Redir token at %d: %s\n", j, redirect_tokens[j].c_str());
+			}
+			if (tokenize_return_value != NORMAL_EXIT) {
+				return_second_value = return_value;
+				return_value = tokenize_return_value;
+				free(line);
+				continue;
+			}
 			d_printf("Input tokenized\n");
-
+			d_printf("Setting redirect flags\n");
+			set_redirect_flags();
 			d_printf("Substituting each token\n");
 			
 			int ret_val;

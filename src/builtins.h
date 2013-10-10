@@ -9,6 +9,9 @@
 #include <sstream>
 #include <stack>
 #include <errno.h>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/types.h>
 
 // Readline lib
 #include <readline/readline.h>
@@ -25,7 +28,8 @@
 #define CMD_NOT_FOUND				int(6)
 #define BLANK_COMMAND				int(7)
 #define BAD_SUBSTITUTION			int(8)
-#define MULTIPLE_REDIRECTIONS		int(9)
+#define MULTIPLE_REDIRECTS			int(9)
+#define BAD_REDIRECT				int(10)
 
 // Return normal code for history expansion
 #define NORMAL_EXIT_EXPANSION		int(1)
