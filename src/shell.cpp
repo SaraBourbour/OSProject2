@@ -39,33 +39,33 @@ vector<string> redirect_tokens;
 // char array to mark which redirect is active, can be used for multiple redirects
 char redirect_flags[3];
 
-// Set if pipe input is waiting
-bool input_on_pipe = false;
-
-// Create a pipe to transfer data between processes
-int cmd_pipe[2];
+// Flags to manage where piped data goes
+bool pipe_in = false;
+bool pipe_out = false;
 
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
 	
-	// Marks if output should be piped to child
-	bool pipe_to_child = false;
-	int pipe_index;
+	// Create the pipes
+	int input_pipe[2];
+	pipe(input_pipe);
+	int output_pipe[2];
+	pipe(output_pipe);
+
+	// Cache the standard io
+	int stdin_fd = dup(STD_IN);
+	int stdout_fd = dup(STD_OUT);
+	
 	int child_PID = -1;
-	// Determine if we need to pipe
-	for (int i = 0; i < tokens.size(); i++) {
-		if (tokens[i] == "|") {
-			pipe_to_child = true;
-			pipe_index = i;
-			break;
-		}
-	}
 	// Fork off a new process
 	d_printf("Forking a child process\n");
 	child_PID = fork();
 	// If this process is the child
 	if (child_PID == 0) {
 		d_printf("Inside the child process\n");
+		// Close the ends of pipes
+		close(input_pipe[1]);
+		close(output_pipe[0]);
 		// Generate the command char *const command[], with NULL on the end
 		char *command[tokens.size() + 1];
 		d_printf("Generating command array\n");
@@ -74,10 +74,37 @@ int execute_external_command(vector<string> tokens) {
 		}
 		// Don't forget the null
 		command[tokens.size()] = NULL;
+		d_printf("Preparing to process pipes. I: %d, O: %d\n", pipe_in, pipe_out);
 		// Try execution with each path in $PATH
-		printf("Executing the command\n");
+		if (pipe_in) {
+			d_printf("Attaching input pipe to standard in\n");
+			// Attach the input pipe read to standard in
+			fflush(stdin);
+			dup2(input_pipe[0], STD_IN);
+		}
+		d_printf("Input pipe processed\n");
+		if (pipe_out) {
+			d_printf("Attaching output pipe to standard out\n");
+			// Attach the output write to standard out
+			dup2(output_pipe[1], STD_OUT);
+		}
+		cerr << "Executing...";
+		// The actual execution line
 		int ret_val = execvp(command[0], command);
-		printf("Execution complete\n");
+		// execvp for some reason causes an exit
+		if (pipe_out) {
+			fflush(stdout);
+			close(output_pipe[1]);
+			dup2(stdout_fd, STD_OUT);
+			close(stdout_fd);
+			d_printf("Closed the output pipe\n");
+		}
+		if (pipe_in) {
+			fflush(stdin);
+			dup2(stdin_fd, STD_IN);
+			close(stdin_fd);
+			d_printf("Closed the input pipe\n");
+		}
 		if (ret_val == EXEC_FAIL) {
 			perror("exec");
 			exit(ret_val);
@@ -89,6 +116,9 @@ int execute_external_command(vector<string> tokens) {
 	// Else this is the parent
 	else {
 		d_printf("In parent process\n");
+		// Close the ends of pipes
+		close(input_pipe[0]);
+		close(output_pipe[1]);
 		// Wait for the child to exit
 		int child_return_code = 0;
 		wait(&child_return_code);
@@ -267,10 +297,6 @@ int execute_single_command(vector<string>& tokens, map<string, command>& builtin
 			dup2(append_fd, STD_OUT);
 			close(append_fd);
 		}
-		else if (input_on_pipe) {
-			in_fd = cmd_pipe[0];
-			dup2(in_fd, STD_IN);
-		}
 		
         map<string, command>::iterator cmd = builtins.find(tokens[0]);
         
@@ -278,7 +304,7 @@ int execute_single_command(vector<string>& tokens, map<string, command>& builtin
 			d_printf("Could not find an internal command, trying external\n");
             int ret_val = execute_external_command(tokens);
 			// If a redirect occurred
-			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2] | input_on_pipe) {
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
 				fflush(stdin);
 				fflush(stdout);
 				close(in_fd);
@@ -288,20 +314,18 @@ int execute_single_command(vector<string>& tokens, map<string, command>& builtin
 				dup2(stdout_fd, STD_OUT);
 				close(stdin_fd);
 				close(stdout_fd);
-				input_on_pipe = false;
 			}
 			return ret_val;
 			
         } else {
 			int ret_val = ((*cmd->second)(tokens));
 			// If a redirect occurred
-			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2] | input_on_pipe) {
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
 				// Flush and reset file descriptors
 				fflush(stdout);
 				close(out_fd);
 				dup2(stdout_fd, STD_OUT);
 				close(stdout_fd);
-				input_on_pipe = false;
 			}
 			return ret_val;
 			
@@ -339,67 +363,42 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 	// Cache the stdin and stdout file descriptors
 	int stdin_fd = dup(STD_IN);
 	int stdout_fd = dup(STD_OUT);
+
 	// Execute each command individually
 	for (int i = 0; i < commands.size(); i++) {
 		d_printf("----------------------EXECUTION OUTPUT----------------------\n");
 		if (commands.size() != 1) {
 			d_printf("More than one command detected\n");
-			d_printf("Command pipe opened\n");
 			// If this is the first command, only transfer the out to in of the next command
 			if (i == 0) {
 				d_printf("On the first command\n");
-				// Bind the write of the pipe to stdout
-				dup2(cmd_pipe[1], STD_OUT);
-				// Execute the command
-				int ret_val = execute_single_command(commands[i], builtins);
-				if (ret_val != NORMAL_EXIT) {
-					return ret_val;
-				}
-				// Unbind pipe from stdout
-				fflush(stdout);
-				dup2(stdout_fd, STD_OUT);
-				// Write null to pipe
-				write(cmd_pipe[1], "\0", 1);
-				// Read for debug's sake
-				char read_buffer[127];
-				int n_btyes = read(cmd_pipe[0], read_buffer, sizeof(read_buffer));
-				// Signfy to the execution method that it should get it's input from the cmd pipe
-				input_on_pipe = true;
-				printf("Got an input '%s' from the pipe\n", read_buffer);
+				pipe_out = true;
+				pipe_in = false;
 			}
 			// If this is the last command, only accept the in from the pipe
 			else if (i == commands.size() - 1) {
 				d_printf("On the last command\n");
-//				// Read in the output from the last command
-
-				// Execute the command
-				int ret_val = execute_single_command(commands[i], builtins);
-				if (ret_val != NORMAL_EXIT) {
-					return ret_val;
-				}
+				pipe_out = false;
+				pipe_in = true;
 			}
 			// If this command has a pipe on either side, accept in, write out.
 			else {
 				d_printf("On a middle command\n");
-//				// Read in the output from the last command
-//				char read_buffer[127];
-//				int n_btyes = read(cmd_pipe[0], read_buffer, sizeof(read_buffer));
-//				d_printf("Got a input '%s' from the pipe\n", read_buffer);
-//				// Bind the write of the pipe to stdout
-//				dup2(cmd_pipe[1], STD_OUT);
-//				// Execute the command
-//				int ret_val = execute_single_command(commands[i], builtins);
-//				if (ret_val != NORMAL_EXIT) {
-//					return ret_val;
-//				}
-//				// Unbind pipe from stdout
-//				dup2(STD_OUT, stdout_fd);
+				pipe_out = true;
+				pipe_in = true;
+			}
+			// Execute it
+			int ret_val = execute_single_command(commands[i], builtins);
+			if (ret_val != NORMAL_EXIT) {
+				return ret_val;
 			}
 		}
 		// Else this command has one command
 		else {
 			d_printf("Only one command detected\n");
-			// Just execute it.
+			pipe_in = false;
+			pipe_out = false;
+			// Execute it.
 			int ret_val = execute_single_command(commands[i], builtins);
 			if (ret_val != NORMAL_EXIT) {
 				return ret_val;
@@ -511,8 +510,6 @@ void initializeShell() {
 	redirect_operators.push_back("<");
 	redirect_operators.push_back(">");
 	redirect_operators.push_back(">>");
-	
-	pipe(cmd_pipe);
 	
 	// Initialization complete message
 	printf("\nHsh initialization complete!\n\n");
