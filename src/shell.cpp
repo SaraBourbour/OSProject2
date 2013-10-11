@@ -43,18 +43,25 @@ char redirect_flags[3];
 bool pipe_in = false;
 bool pipe_out = false;
 
+
+// Create the pipes
+int left_command_pipe[2];
+int right_command_pipe[2];
+
+
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
-	
-	// Create the pipes
-	int input_pipe[2];
-	pipe(input_pipe);
-	int output_pipe[2];
-	pipe(output_pipe);
+
 
 	// Cache the standard io
 	int stdin_fd = dup(STD_IN);
 	int stdout_fd = dup(STD_OUT);
+	
+	d_printf("Pipe status: I: %d, O: %d\n", pipe_in, pipe_out);
+	
+	if (pipe_out) {
+		pipe(right_command_pipe);
+	}
 	
 	int child_PID = -1;
 	// Fork off a new process
@@ -63,65 +70,48 @@ int execute_external_command(vector<string> tokens) {
 	// If this process is the child
 	if (child_PID == 0) {
 		d_printf("Inside the child process\n");
-		// Close the ends of pipes
-		close(input_pipe[1]);
-		close(output_pipe[0]);
 		// Generate the command char *const command[], with NULL on the end
 		char *command[tokens.size() + 1];
-		d_printf("Generating command array\n");
+		d_printf("Generating command array of size: %d\n", (int)tokens.size() + 1);
 		for (int i = 0; i < tokens.size(); i++) {
 			command[i] = (char*)tokens[i].c_str();
+			d_printf("Token at: %d is '%s'\n", i, command[i]);
 		}
 		// Don't forget the null
 		command[tokens.size()] = NULL;
-		d_printf("Preparing to process pipes. I: %d, O: %d\n", pipe_in, pipe_out);
-		// Try execution with each path in $PATH
-		if (pipe_in) {
-			d_printf("Attaching input pipe to standard in\n");
-			// Attach the input pipe read to standard in
-			fflush(stdin);
-			dup2(input_pipe[0], STD_IN);
-		}
-		d_printf("Input pipe processed\n");
+		d_printf("Added the null\n");
+		
+		// Just the pipe out
 		if (pipe_out) {
-			d_printf("Attaching output pipe to standard out\n");
-			// Attach the output write to standard out
-			dup2(output_pipe[1], STD_OUT);
+			d_printf("Preparing output pipe\n");
+			dup2(right_command_pipe[1], STD_OUT);
 		}
-		cerr << "Executing...";
+		if (pipe_in) {
+			d_printf("Preparing input pipe\n");
+			dup2(left_command_pipe[0], STD_IN);
+		}
+
 		// The actual execution line
 		int ret_val = execvp(command[0], command);
-		// execvp for some reason causes an exit
-		if (pipe_out) {
-			fflush(stdout);
-			close(output_pipe[1]);
-			dup2(stdout_fd, STD_OUT);
-			close(stdout_fd);
-			d_printf("Closed the output pipe\n");
-		}
-		if (pipe_in) {
-			fflush(stdin);
-			dup2(stdin_fd, STD_IN);
-			close(stdin_fd);
-			d_printf("Closed the input pipe\n");
-		}
-		if (ret_val == EXEC_FAIL) {
-			perror("exec");
-			exit(ret_val);
-		}
-		else {
-			exit(NORMAL_EXIT);
-		}
+		return ret_val;
 	}
 	// Else this is the parent
 	else {
 		d_printf("In parent process\n");
-		// Close the ends of pipes
-		close(input_pipe[0]);
-		close(output_pipe[1]);
 		// Wait for the child to exit
 		int child_return_code = 0;
+		
 		wait(&child_return_code);
+		if (pipe_out) {
+			close(right_command_pipe[1]);
+			dup2(stdout_fd, STD_OUT);
+		}
+		if (pipe_in) {
+			dup2(stdin_fd, STD_IN);
+		}
+		
+		left_command_pipe[0] = right_command_pipe[0];
+		left_command_pipe[1] = right_command_pipe[1];
 		d_printf("Child exited with code: %d, errno: %d. Resuming parent control\n", child_return_code, errno);
 		return child_return_code;
 	}
@@ -363,7 +353,6 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 	// Cache the stdin and stdout file descriptors
 	int stdin_fd = dup(STD_IN);
 	int stdout_fd = dup(STD_OUT);
-
 	// Execute each command individually
 	for (int i = 0; i < commands.size(); i++) {
 		d_printf("----------------------EXECUTION OUTPUT----------------------\n");
