@@ -93,7 +93,7 @@ int execute_external_command(vector<string> tokens) {
 
 		// The actual execution line
 		int ret_val = execvp(command[0], command);
-		return ret_val;
+		exit(ret_val);
 	}
 	// Else this is the parent
 	else {
