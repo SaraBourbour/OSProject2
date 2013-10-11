@@ -12,6 +12,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 // Readline lib
 #include <readline/readline.h>
