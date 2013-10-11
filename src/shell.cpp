@@ -86,7 +86,6 @@ int execute_external_command(vector<string> tokens) {
 		int child_return_code = 0;
 		wait(&child_return_code);
 		d_printf("Child exited with code: %d, errno: %d. Resuming parent control\n", child_return_code, errno);
-		perror("test");
 		return child_return_code;
 	}
 }
