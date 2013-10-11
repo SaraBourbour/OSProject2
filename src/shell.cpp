@@ -84,7 +84,7 @@ int execute_external_command(vector<string> tokens) {
 		d_printf("In parent process\n");
 		// Wait for the child to exit
 		int child_return_code = 0;
-		waitpid(child_PID, &child_return_code, 0);
+		wait(&child_return_code);
 		d_printf("Child exited with code: %d, errno: %d. Resuming parent control\n", child_return_code, errno);
 		perror("test");
 		return child_return_code;
