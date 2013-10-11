@@ -127,7 +127,7 @@ int com_echo(vector<string>& tokens) {
 		for (int i = 1; i < tokens.size(); ++i) {
 			string tempToken = tokens[i];
 			if (i == tokens.size() - 1) {
-				printf("%s\n", tokens[i].c_str());
+				printf("%s", tokens[i].c_str());
 				return NORMAL_EXIT;
 			}
 			else {

@@ -9,15 +9,7 @@
 #include "builtins.h"
 
 // Potentially useful #includes (either here or in builtins.h):
-//   #include <dirent.h>
-//   #include <errno.h>
 
-//   #include <signal.h>
-//   #include <sys/errno.h>
-//   #include <sys/param.h>
-
-//   #include <sys/wait.h>
-//   #include <unistd.h>
 
 using namespace std;
 
@@ -47,11 +39,31 @@ vector<string> redirect_tokens;
 // char array to mark which redirect is active, can be used for multiple redirects
 char redirect_flags[3];
 
+// Flags to manage where piped data goes
+bool pipe_in = false;
+bool pipe_out = false;
+
+
+// Create the pipes
+int left_command_pipe[2];
+int right_command_pipe[2];
+
+
 // Handles external commands, redirects, and pipes.
 int execute_external_command(vector<string> tokens) {
+
+
+	// Cache the standard io
+	int stdin_fd = dup(STD_IN);
+	int stdout_fd = dup(STD_OUT);
+	
+	d_printf("Pipe status: I: %d, O: %d\n", pipe_in, pipe_out);
+	
+	if (pipe_out) {
+		pipe(right_command_pipe);
+	}
 	
 	int child_PID = -1;
-	int *child_return_code = new int;
 	// Fork off a new process
 	d_printf("Forking a child process\n");
 	child_PID = fork();
@@ -60,74 +72,49 @@ int execute_external_command(vector<string> tokens) {
 		d_printf("Inside the child process\n");
 		// Generate the command char *const command[], with NULL on the end
 		char *command[tokens.size() + 1];
-		d_printf("Generating command array\n");
+		d_printf("Generating command array of size: %d\n", (int)tokens.size() + 1);
 		for (int i = 0; i < tokens.size(); i++) {
 			command[i] = (char*)tokens[i].c_str();
+			d_printf("Token at: %d is '%s'\n", i, command[i]);
 		}
 		// Don't forget the null
 		command[tokens.size()] = NULL;
-		// Try execution with each path in $PATH
-		d_printf("Preparing to path match the command\n");
-		string path = getenv("PATH");
-		string path_delimiter = ":";
-		size_t current_position = 0;
-		string path_component;
-		bool executed = false;
-		string file_to_execute;
+		d_printf("Added the null\n");
 		
-		d_printf("Command[0]: %s\n", command[0]);
-		while ((current_position = path.find(path_delimiter)) != string::npos && !executed) {
-			path_component = path.substr(0, current_position);
-			d_printf("Path component: %s\n", path_component.c_str());
-			// Append the path component to the command
-			file_to_execute = path_component + "/" + command[0];
-			d_printf("Trying command: %s\n", file_to_execute.c_str());
-			// Attempt to execute it
-			int ret_val = execve(file_to_execute.c_str(), command, environ);
-			d_printf("Exec returned: %d\n", ret_val);
-			// If the execution was good
-			if (ret_val != EXEC_FAIL) {
-				// Mark executed so we stop
-				executed = true;
-				// Return normal exit code
-				d_printf("Exiting with 0\n");
-				exit(NORMAL_EXIT);
-			}
-			// Chop that part of the path string off
-			path.erase(0, current_position + path_delimiter.length());
+		// Just the pipe out
+		if (pipe_out) {
+			d_printf("Preparing output pipe\n");
+			dup2(right_command_pipe[1], STD_OUT);
 		}
-		// Try execution with PWD for the command if PATH didn't find it
-		if (!executed) {
-			d_printf("Trying to execute with pwd\n");
-			file_to_execute = pwd() + "/" + command[0];
-			int ret_val = execve(file_to_execute.c_str(), command, environ);
-			if (ret_val != EXEC_FAIL) {
-				d_printf("PWD execution successful\n");
-				executed = true;
-				errno = 0;
-				exit(NORMAL_EXIT);
-			}
+		if (pipe_in) {
+			d_printf("Preparing input pipe\n");
+			dup2(left_command_pipe[0], STD_IN);
 		}
-		d_printf("Unable to execute, command not found\n");
-		// If we still haven't executed, return command not found
-		exit(CMD_NOT_FOUND);
+
+		// The actual execution line
+		int ret_val = execvp(command[0], command);
+		return ret_val;
 	}
 	// Else this is the parent
 	else {
 		d_printf("In parent process\n");
 		// Wait for the child to exit
-		wait(child_return_code);
-		// Sleep for 100ms to alleviate race condition on stdin
-		usleep(100000);
-		d_printf("Child exited with code: %d. Resuming parent control\n", *child_return_code);
-		if (*child_return_code != NORMAL_EXIT) {
-			d_printf("Child exited abnormally\n");
-			return *child_return_code;
+		int child_return_code = 0;
+		
+		wait(&child_return_code);
+		if (pipe_out) {
+			close(right_command_pipe[1]);
+			dup2(stdout_fd, STD_OUT);
 		}
+		if (pipe_in) {
+			dup2(stdin_fd, STD_IN);
+		}
+		
+		left_command_pipe[0] = right_command_pipe[0];
+		left_command_pipe[1] = right_command_pipe[1];
+		d_printf("Child exited with code: %d, errno: %d. Resuming parent control\n", child_return_code, errno);
+		return child_return_code;
 	}
-	
-	// Check return codes for the external command
-    return NORMAL_EXIT;
 }
 
 // Return a string representing the prompt to display to the user. It needs to
@@ -279,13 +266,8 @@ int tokenize(const char* line, vector<string>& save_to) {
     return NORMAL_EXIT;
 }
 
-
-// Executes a line of input by either calling execute_external_command or
-// directly invoking the built-in command.
-int execute_line(vector<string>& tokens, map<string, command>& builtins) {
-    int return_value = 0;
-    
-    if (tokens.size() != 0) {
+int execute_single_command(vector<string>& tokens, map<string, command>& builtins) {
+	if (tokens.size() != 0) {
 		int stdin_fd = dup(STD_IN);
 		int stdout_fd = dup(STD_OUT);
 		int in_fd, out_fd, append_fd;
@@ -311,28 +293,111 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
         if (cmd == builtins.end()) {
 			d_printf("Could not find an internal command, trying external\n");
             int ret_val = execute_external_command(tokens);
-			fflush(stdin);
-			fflush(stdout);
-			close(in_fd);
-			close(out_fd);
-			close(append_fd);
-			dup2(stdin_fd, STD_IN);
-			dup2(stdout_fd, STD_OUT);
-			close(stdin_fd);
-			close(stdout_fd);
+			// If a redirect occurred
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
+				fflush(stdin);
+				fflush(stdout);
+				close(in_fd);
+				close(out_fd);
+				close(append_fd);
+				dup2(stdin_fd, STD_IN);
+				dup2(stdout_fd, STD_OUT);
+				close(stdin_fd);
+				close(stdout_fd);
+			}
 			return ret_val;
 			
         } else {
 			int ret_val = ((*cmd->second)(tokens));
-			// Flush and reset file descriptors
-			fflush(stdout);
-			close(out_fd);
-			dup2(stdout_fd, STD_OUT);
-			close(stdout_fd);
+			// If a redirect occurred
+			if (redirect_flags[0] | redirect_flags[1] | redirect_flags[2]) {
+				// Flush and reset file descriptors
+				fflush(stdout);
+				close(out_fd);
+				dup2(stdout_fd, STD_OUT);
+				close(stdout_fd);
+			}
 			return ret_val;
+			
         }
     }
     return BLANK_COMMAND;
+}
+
+// Executes a line of input by either calling execute_external_command or
+// directly invoking the built-in command.
+int execute_line(vector<string>& tokens, map<string, command>& builtins) {
+	d_printf("Starting line execution\n");
+    int return_value = 0;
+	vector< vector<string> > commands;
+	vector<string>::iterator tokens_iterator = tokens.begin();
+	vector<string> command;
+	d_printf("Generating commands\n");
+	while (tokens_iterator != tokens.end()) {
+		if (*tokens_iterator == "|") {
+			d_printf("Found a pipe\n");
+			commands.push_back(command);
+			command.clear();
+		}
+		else {
+			d_printf("Pushing back a token\n");
+			command.push_back(*tokens_iterator);
+		}
+		tokens_iterator++;
+	}
+	// Push back final command
+	commands.push_back(command);
+	command.clear();
+	d_printf("Found %d command(s)\n", (int)commands.size());
+	
+	// Cache the stdin and stdout file descriptors
+	int stdin_fd = dup(STD_IN);
+	int stdout_fd = dup(STD_OUT);
+	// Execute each command individually
+	for (int i = 0; i < commands.size(); i++) {
+		d_printf("----------------------EXECUTION OUTPUT----------------------\n");
+		if (commands.size() != 1) {
+			d_printf("More than one command detected\n");
+			// If this is the first command, only transfer the out to in of the next command
+			if (i == 0) {
+				d_printf("On the first command\n");
+				pipe_out = true;
+				pipe_in = false;
+			}
+			// If this is the last command, only accept the in from the pipe
+			else if (i == commands.size() - 1) {
+				d_printf("On the last command\n");
+				pipe_out = false;
+				pipe_in = true;
+			}
+			// If this command has a pipe on either side, accept in, write out.
+			else {
+				d_printf("On a middle command\n");
+				pipe_out = true;
+				pipe_in = true;
+			}
+			// Execute it
+			int ret_val = execute_single_command(commands[i], builtins);
+			if (ret_val != NORMAL_EXIT) {
+				return ret_val;
+			}
+		}
+		// Else this command has one command
+		else {
+			d_printf("Only one command detected\n");
+			pipe_in = false;
+			pipe_out = false;
+			// Execute it.
+			int ret_val = execute_single_command(commands[i], builtins);
+			if (ret_val != NORMAL_EXIT) {
+				return ret_val;
+			}
+		}
+
+		d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
+	}
+	
+	return NORMAL_EXIT;
 }
 
 
@@ -440,6 +505,7 @@ void initializeShell() {
 }
 
 void set_redirect_flags() {
+	d_printf("Setting redirect flags\n");
 	redirect_flags[0] = redirect_flags[1] = redirect_flags[2] = 0;
 	d_printf("Redirect flags reset\n");
 	if (redirect_tokens.size() == 0) return;
@@ -456,7 +522,6 @@ void set_redirect_flags() {
 		redirect_flags[2] = 1;
 	}
 }
-
 
 // The main program
 int main() {
@@ -492,13 +557,6 @@ int main() {
             vector<string> tokens;
 			redirect_tokens.clear();
 			int tokenize_return_value = tokenize(line, tokens);
-			
-			for (int i = 0; i < tokens.size(); i++) {
-				d_printf("Token at %d: %s\n", i, tokens[i].c_str());
-			}
-			for (int j = 0; j < redirect_tokens.size(); j++) {
-				d_printf("Redir token at %d: %s\n", j, redirect_tokens[j].c_str());
-			}
 			if (tokenize_return_value != NORMAL_EXIT) {
 				return_second_value = return_value;
 				return_value = tokenize_return_value;
@@ -506,7 +564,6 @@ int main() {
 				continue;
 			}
 			d_printf("Input tokenized\n");
-			d_printf("Setting redirect flags\n");
 			set_redirect_flags();
 			d_printf("Substituting each token\n");
 			
@@ -521,12 +578,7 @@ int main() {
 			d_printf("Substitution complete\n");
 			
 			d_printf("Adding to history\n");
-			// Add this command to readline's history
-			stringstream history_string;
-			for (int i = 0; i < tokens.size(); i++) {
-				history_string << tokens[i];
-			}
-			add_history(history_string.str().c_str());
+			add_history(line);
 			d_printf("Updating the history file\n");
 			// Update history file
 			if (write_history(NULL) != NORMAL_EXIT) {
@@ -540,13 +592,14 @@ int main() {
             d_printf("Local variables assigned\n");
             // Substitute variable references
             variable_substitution(tokens);
+			
+			
             d_printf("Variables substituted\n");
 			return_second_value = return_value;
 			d_printf("Updated second return value\n");
-			d_printf("----------------------EXECUTION OUTPUT----------------------\n");
+
             // Execute the line
             return_value = execute_line(tokens, builtins);
-			d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
 			d_printf("Line completed execution\n");
 			// If the exit shell signal is the return code, then close the shell
 			if (return_value != NORMAL_EXIT) {
