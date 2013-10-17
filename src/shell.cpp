@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <unistd.h>
 
 #include "builtins.h"
 
@@ -176,7 +177,38 @@ char* command_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        // TODO: YOUR CODE GOES HERE
+        map<string, command>::iterator it = builtins.begin();
+		char* name;
+		// Get all the matches in the builtins
+		while (it != builtins.end()) {
+			d_printf("Pushing back command name: %s\n", it->first.c_str());
+			matches.push_back(it->first);
+			++it;
+		}
+		d_printf("All builtins added\n");
+		// Get all the matches for each directory in path
+		string path = getenv("PATH");
+		d_printf("Got path: %s", path.c_str());
+		int nextIndex, executable;
+		string pathComponent;
+		while ((nextIndex = path.find(":")) != string::npos) {
+			pathComponent = path.substr(0, nextIndex);
+			d_printf("Using path component '%s' for expansion\n", pathComponent.c_str());
+			// output each entry in the directory
+			DIR* dir = opendir(pathComponent.c_str());
+			string filepath;
+			for (dirent* current = readdir(dir); current; current = readdir(dir)) {
+				// 0x01 checks for executability. X_OK not defined in project for some reason
+				d_printf("Checking permissions on %s\n",current->d_name);
+				filepath = pathComponent + "/" + current->d_name;
+				executable = access(filepath.c_str(), F_OK | X_OK | R_OK);
+				if (executable == 0) {
+					d_printf("Pushing back program name: %s", current->d_name);
+					matches.push_back(current->d_name);
+				}
+			}
+			path = path.substr(nextIndex + 1, path.length());
+		}
     }
     
     // Return a single match (one for each time the function is called)
