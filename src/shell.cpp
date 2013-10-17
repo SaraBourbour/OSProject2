@@ -349,6 +349,19 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 	commands.push_back(command);
 	command.clear();
 	d_printf("Found %d command(s)\n", (int)commands.size());
+	int child_PID = -1;
+	if (tokens.at(tokens.size() - 1) == "&") {
+		d_printf("Found a backgroundable task\n");
+		// Remove the & token then begin execution
+		tokens.pop_back();
+		// Remove the & token from the command as well
+		commands.at(commands.size() - 1).pop_back();
+		child_PID = fork();
+		if (child_PID != 0) {
+			printf("[1] %d", child_PID);
+			return NORMAL_EXIT;
+		}
+	}
 	
 	// Cache the stdin and stdout file descriptors
 	int stdin_fd = dup(STD_IN);
@@ -379,6 +392,16 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 			// Execute it
 			int ret_val = execute_single_command(commands[i], builtins);
 			if (ret_val != NORMAL_EXIT) {
+				if (child_PID == 0) {
+					// We're in a child shell
+					// Close the child shell after execution
+					printf("[1]+\tDone\t\t");
+					for (int i = 0; i < tokens.size(); i++) {
+						printf("%s", tokens.at(i).c_str());
+					}
+					printf("\n");
+					return SIGNAL_EXIT_SHELL;
+				}
 				return ret_val;
 			}
 		}
@@ -390,11 +413,31 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 			// Execute it.
 			int ret_val = execute_single_command(commands[i], builtins);
 			if (ret_val != NORMAL_EXIT) {
+				if (child_PID == 0) {
+					// We're in a child shell
+					// Close the child shell after execution
+					printf("[1]+\tDone\t\t");
+					for (int i = 0; i < tokens.size(); i++) {
+						printf("%s", tokens.at(i).c_str());
+					}
+					printf("\n");
+					return SIGNAL_EXIT_SHELL;
+				}
 				return ret_val;
 			}
 		}
 
 		d_printf("-------------------END EXECUTION OUTPUT---------------------\n");
+	}
+	if (child_PID == 0) {
+		// We're in a child shell
+		// Close the child shell after execution
+		printf("[1]+\tDone\t\t");
+		for (int i = 0; i < tokens.size(); i++) {
+			printf("%s ", tokens.at(i).c_str());
+		}
+		printf("\n");
+		return SIGNAL_EXIT_SHELL;
 	}
 	
 	return NORMAL_EXIT;
