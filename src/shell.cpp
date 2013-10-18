@@ -158,8 +158,46 @@ char* environment_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        for (int i = 0; i < sizeof(environ) / sizeof(environ[0]); i++) {
-			printf("Environ at %d: %s\n", i, environ[i]);
+		// Get environ size
+		char *next = new char;
+		size_t size = 0;
+		while (next != NULL) {
+			next = environ[size];
+			if (next != NULL) {
+				++size;
+			}
+		}
+		
+		d_printf("Size of environ: %d", int(size));
+		bool bad_match = false;
+        for (int i = 0; i < size; i++) {
+			// Greater than 1 due to the '$' in front of the line
+			if (strlen(text) > 1) {
+				string text_without_mark = text;
+				text_without_mark = text_without_mark.substr(1, text_without_mark.length());
+				d_printf("Comparing element '%s' with text '%s'", environ[i], text_without_mark.c_str());
+				for (int j = 0; j < text_without_mark.length(); j++) {
+					bad_match = false;
+			
+					if (text_without_mark[j] != environ[i][j]) {
+						bad_match = true;
+						break;
+					}
+				}
+				if (bad_match) {
+					d_printf("Skipping an element as it does not match\n");
+					continue;
+				}
+			}
+			// Only match up to the equals sign
+			string to_push = environ[i];
+			int index = to_push.find("=");
+			if (index != string::npos) {
+				to_push = to_push.substr(0, index);
+			}
+			// Readd the '$' Character
+			to_push = "$" + to_push;
+			matches.push_back(to_push);
 		}
     }
     
@@ -472,6 +510,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 					printf("\n");
 					return SIGNAL_EXIT_SHELL;
 				}
+				d_printf("Returning from exec with multi command: %d", ret_val);
 				return ret_val;
 			}
 		}
@@ -493,6 +532,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 					printf("\n");
 					return SIGNAL_EXIT_SHELL;
 				}
+				d_printf("Returning from exec with one command: %d", ret_val);
 				return ret_val;
 			}
 		}
@@ -721,9 +761,10 @@ int main() {
 						return return_second_value;
 						
 					case CMD_NOT_FOUND:
+					case CMD_NOT_FOUND_ERR:
+					case EXT_CMD_NOT_FOUND:
 						cerr << line << ": command not found\n";
 						break;
-						
 					default:
 						break;
 				}
