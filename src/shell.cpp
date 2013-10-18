@@ -36,6 +36,10 @@ vector<string> redirect_operators;
 // Ex: `echo blah > file' would have {'>', "file"} in the vector
 vector<string> redirect_tokens;
 
+int current_job = 0;
+
+int this_shells_job = 0;
+
 // char array to mark which redirect is active, can be used for multiple redirects
 char redirect_flags[3];
 
@@ -466,7 +470,8 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 		commands.at(commands.size() - 1).pop_back();
 		child_PID = fork();
 		if (child_PID != 0) {
-			printf("[1] %d", child_PID);
+			++current_job;
+			printf("[%d] %d",current_job , child_PID);
 			return NORMAL_EXIT;
 		}
 	}
@@ -503,7 +508,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 				if (child_PID == 0) {
 					// We're in a child shell
 					// Close the child shell after execution
-					printf("[1]+\tDone\t\t");
+					printf("[%d]+\tDone\t\t", this_shells_job);
 					for (int i = 0; i < tokens.size(); i++) {
 						printf("%s", tokens.at(i).c_str());
 					}
@@ -525,7 +530,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 				if (child_PID == 0) {
 					// We're in a child shell
 					// Close the child shell after execution
-					printf("[1]+\tDone\t\t");
+					printf("[%d]+\tDone\t\t", this_shells_job);
 					for (int i = 0; i < tokens.size(); i++) {
 						printf("%s", tokens.at(i).c_str());
 					}
@@ -542,7 +547,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 	if (child_PID == 0) {
 		// We're in a child shell
 		// Close the child shell after execution
-		printf("[1]+\tDone\t\t");
+		printf("[%d]+\tDone\t\t", this_shells_job);
 		for (int i = 0; i < tokens.size(); i++) {
 			printf("%s ", tokens.at(i).c_str());
 		}
