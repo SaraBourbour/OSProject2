@@ -84,15 +84,22 @@ Extra Features
 	
 6. The end of the prompt "lc: #" specifies the return code
 	of the last command ran.
+
+7. There is a greeting to the shell when it first starts,
+	similar to other shells. I did this just for fun.
 	
 -- Intermediate two --
 
-7. Shell supports (theoretically) infinite pipes. As long 
+8. Shell supports (theoretically) infinite pipes. As long
 	as you have the memory.
 
-8. Makefile based debugging activation. Run `make debug' if you
+9. Makefile based debugging activation. Run `make debug' if you
 	want to see verbose output.
 	
+-- Final Submission -- 
+
+- Nothing neat to add this submission :(
+
 
 -------------------------------------------------
 Misc
@@ -102,5 +109,9 @@ For deliverable 1, I spent about 13 hours on it (mostly
 testing). It should	be rather solid of a shell now though.
 
 For deliverable 2, I spent about 14 hours on the new features.
-A lot of this time was making all the debugging not be the way,
+A lot of this time was making all the debugging not be in the way,
 but also still be super useful.
+
+For the final deliverable, I only spent about 4 hours. This
+is super surprising to me. Maybe I just spent enough time making 
+this final easy in the earlier deliverables.
