@@ -14,7 +14,6 @@
 
 using namespace std;
 
-
 // The characters that readline will use to delimit words
 const char* const WORD_DELIMITERS = " \t\n\"\\'`@><=;|&{(";
 
@@ -159,7 +158,9 @@ char* environment_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        // TODO: YOUR CODE GOES HERE
+        for (int i = 0; i < sizeof(environ) / sizeof(environ[0]); i++) {
+			printf("Environ at %d: %s\n", i, environ[i]);
+		}
     }
     
     // Return a single match (one for each time the function is called)
@@ -260,7 +261,8 @@ char** word_completion(const char* text, int start, int end) {
     if (start == 0) {
         rl_completion_append_character = ' ';
         matches = rl_completion_matches(text, command_completion_generator);
-    } else if (text[0] == '$') {
+    }
+	if (text[0] == '$') {
         rl_completion_append_character = ' ';
         matches = rl_completion_matches(text, environment_completion_generator);
     } else {
@@ -639,7 +641,6 @@ int main() {
 	
 	initializeShell();
 
-    
     // The return value of the last command executed
     int return_value = 0;
 	
