@@ -654,7 +654,7 @@ void initializeShell() {
 	redirect_operators.push_back(">>");
 	
 	// Initialization complete message
-	printf("\nHsh initialization complete!\n\n");
+	printf("Hsh initialization complete!");
 }
 
 void set_redirect_flags() {
