@@ -177,11 +177,28 @@ char* command_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        map<string, command>::iterator it = builtins.begin();
+		map<string, command>::iterator it = builtins.begin();
 		char* name;
+		bool bad_match = false;
 		// Get all the matches in the builtins
 		while (it != builtins.end()) {
+			bad_match = false;
 			d_printf("Pushing back command name: %s\n", it->first.c_str());
+			// If there is text to match
+			if (strlen(text) > 0) {
+				// Ensure that text matches
+				for (int i = 0; i < strlen(text); ++i) {
+					if (text[i] != it->first[i]) {
+						bad_match = true;
+						break;
+					}
+				}
+				// If the text does not match, do not add
+				if (bad_match) {
+					++it;
+					continue;
+				}
+			}
 			matches.push_back(it->first);
 			++it;
 		}
@@ -198,18 +215,37 @@ char* command_completion_generator(const char* text, int state) {
 			DIR* dir = opendir(pathComponent.c_str());
 			string filepath;
 			for (dirent* current = readdir(dir); current; current = readdir(dir)) {
+				bad_match = false;
 				// 0x01 checks for executability. X_OK not defined in project for some reason
 				d_printf("Checking permissions on %s\n",current->d_name);
 				filepath = pathComponent + "/" + current->d_name;
 				executable = access(filepath.c_str(), F_OK | X_OK | R_OK);
 				if (executable == 0) {
+					// If there is text to match
+					if (strlen(text) > 0) {
+						// Make sure it matches
+						for (int i = 0; i < strlen(text); ++i) {
+							if (text[i] != current->d_name[i]) {
+								d_printf("Removing an element because it does not match\n");
+								bad_match = true;
+								break;
+							}
+						}
+						// If the text does not match, do not add
+						if (bad_match) {
+							// Continue without adding
+							d_printf("Continuing without adding an element\n");
+							continue;
+						}
+						
+					}
 					d_printf("Pushing back program name: %s", current->d_name);
 					matches.push_back(current->d_name);
 				}
 			}
 			path = path.substr(nextIndex + 1, path.length());
 		}
-    }
+	}
     
     // Return a single match (one for each time the function is called)
     return pop_match(matches);
