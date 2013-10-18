@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <unistd.h>
 
 #include "builtins.h"
 
@@ -12,7 +13,6 @@
 
 
 using namespace std;
-
 
 // The characters that readline will use to delimit words
 const char* const WORD_DELIMITERS = " \t\n\"\\'`@><=;|&{(";
@@ -158,7 +158,47 @@ char* environment_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        // TODO: YOUR CODE GOES HERE
+		// Get environ size
+		char *next = new char;
+		size_t size = 0;
+		while (next != NULL) {
+			next = environ[size];
+			if (next != NULL) {
+				++size;
+			}
+		}
+		
+		d_printf("Size of environ: %d", int(size));
+		bool bad_match = false;
+        for (int i = 0; i < size; i++) {
+			// Greater than 1 due to the '$' in front of the line
+			if (strlen(text) > 1) {
+				string text_without_mark = text;
+				text_without_mark = text_without_mark.substr(1, text_without_mark.length());
+				d_printf("Comparing element '%s' with text '%s'", environ[i], text_without_mark.c_str());
+				for (int j = 0; j < text_without_mark.length(); j++) {
+					bad_match = false;
+			
+					if (text_without_mark[j] != environ[i][j]) {
+						bad_match = true;
+						break;
+					}
+				}
+				if (bad_match) {
+					d_printf("Skipping an element as it does not match\n");
+					continue;
+				}
+			}
+			// Only match up to the equals sign
+			string to_push = environ[i];
+			int index = to_push.find("=");
+			if (index != string::npos) {
+				to_push = to_push.substr(0, index);
+			}
+			// Readd the '$' Character
+			to_push = "$" + to_push;
+			matches.push_back(to_push);
+		}
     }
     
     // Return a single match (one for each time the function is called)
@@ -176,8 +216,75 @@ char* command_completion_generator(const char* text, int state) {
     // If this is the first time called, construct the matches list with
     // all possible matches
     if (state == 0) {
-        // TODO: YOUR CODE GOES HERE
-    }
+		map<string, command>::iterator it = builtins.begin();
+		char* name;
+		bool bad_match = false;
+		// Get all the matches in the builtins
+		while (it != builtins.end()) {
+			bad_match = false;
+			d_printf("Pushing back command name: %s\n", it->first.c_str());
+			// If there is text to match
+			if (strlen(text) > 0) {
+				// Ensure that text matches
+				for (int i = 0; i < strlen(text); ++i) {
+					if (text[i] != it->first[i]) {
+						bad_match = true;
+						break;
+					}
+				}
+				// If the text does not match, do not add
+				if (bad_match) {
+					++it;
+					continue;
+				}
+			}
+			matches.push_back(it->first);
+			++it;
+		}
+		d_printf("All builtins added\n");
+		// Get all the matches for each directory in path
+		string path = getenv("PATH");
+		d_printf("Got path: %s", path.c_str());
+		int nextIndex, executable;
+		string pathComponent;
+		while ((nextIndex = path.find(":")) != string::npos) {
+			pathComponent = path.substr(0, nextIndex);
+			d_printf("Using path component '%s' for expansion\n", pathComponent.c_str());
+			// output each entry in the directory
+			DIR* dir = opendir(pathComponent.c_str());
+			string filepath;
+			for (dirent* current = readdir(dir); current; current = readdir(dir)) {
+				bad_match = false;
+				// 0x01 checks for executability. X_OK not defined in project for some reason
+				d_printf("Checking permissions on %s\n",current->d_name);
+				filepath = pathComponent + "/" + current->d_name;
+				executable = access(filepath.c_str(), F_OK | X_OK | R_OK);
+				if (executable == 0) {
+					// If there is text to match
+					if (strlen(text) > 0) {
+						// Make sure it matches
+						for (int i = 0; i < strlen(text); ++i) {
+							if (text[i] != current->d_name[i]) {
+								d_printf("Removing an element because it does not match\n");
+								bad_match = true;
+								break;
+							}
+						}
+						// If the text does not match, do not add
+						if (bad_match) {
+							// Continue without adding
+							d_printf("Continuing without adding an element\n");
+							continue;
+						}
+						
+					}
+					d_printf("Pushing back program name: %s", current->d_name);
+					matches.push_back(current->d_name);
+				}
+			}
+			path = path.substr(nextIndex + 1, path.length());
+		}
+	}
     
     // Return a single match (one for each time the function is called)
     return pop_match(matches);
@@ -192,7 +299,8 @@ char** word_completion(const char* text, int start, int end) {
     if (start == 0) {
         rl_completion_append_character = ' ';
         matches = rl_completion_matches(text, command_completion_generator);
-    } else if (text[0] == '$') {
+    }
+	if (text[0] == '$') {
         rl_completion_append_character = ' ';
         matches = rl_completion_matches(text, environment_completion_generator);
     } else {
@@ -402,6 +510,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 					printf("\n");
 					return SIGNAL_EXIT_SHELL;
 				}
+				d_printf("Returning from exec with multi command: %d", ret_val);
 				return ret_val;
 			}
 		}
@@ -423,6 +532,7 @@ int execute_line(vector<string>& tokens, map<string, command>& builtins) {
 					printf("\n");
 					return SIGNAL_EXIT_SHELL;
 				}
+				d_printf("Returning from exec with one command: %d", ret_val);
 				return ret_val;
 			}
 		}
@@ -571,7 +681,6 @@ int main() {
 	
 	initializeShell();
 
-    
     // The return value of the last command executed
     int return_value = 0;
 	
@@ -652,9 +761,10 @@ int main() {
 						return return_second_value;
 						
 					case CMD_NOT_FOUND:
+					case CMD_NOT_FOUND_ERR:
+					case EXT_CMD_NOT_FOUND:
 						cerr << line << ": command not found\n";
 						break;
-						
 					default:
 						break;
 				}

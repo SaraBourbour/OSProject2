@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 // Readline lib
 #include <readline/readline.h>
@@ -31,6 +32,8 @@
 #define BAD_SUBSTITUTION			int(8)
 #define MULTIPLE_REDIRECTS			int(9)
 #define BAD_REDIRECT				int(10)
+#define CMD_NOT_FOUND_ERR			int(512)
+#define EXT_CMD_NOT_FOUND			int(65280)
 
 // Return normal code for history expansion
 #define NORMAL_EXIT_EXPANSION		int(1)
